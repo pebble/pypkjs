@@ -4,12 +4,15 @@ import PyV8 as v8
 from console import Console
 from performance import Performance
 from timers import Timers
-
+from localstorage import LocalStorage
+from jsJSON import JSON
 
 class PebbleKitJS(v8.JSClass):
     def __init__(self, loop):
         self.console = Console()
         self.performance = Performance()
+        self.localStorage = LocalStorage()
+        self.JSON = JSON()
 
         timerImpl = Timers(loop)
         self.setTimeout = lambda x, y: timerImpl.setTimeout(x, y)
