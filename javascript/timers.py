@@ -13,16 +13,16 @@ class Timers(object):
                 del self._timers[timer_key]
             fn()
 
-    def _run_timer(self, fn, timeout, repeat):
-        if timeout < 4:
-            timeout = 4
+    def _run_timer(self, fn, timeout_ms, repeat):
+        if timeout_ms < 4:
+            timeout_ms = 4
 
         timer_id = self._counter
         timer_key = (timer_id, repeat)
         self._counter += 1
 
-        timeout_ms = timeout / 1000.0
-        timer = self._loop.timer(timeout_ms, timeout_ms if repeat else 0, self._exec_timer, (timer_key, repeat, fn))
+        timeout_s = timeout_ms / 1000.0
+        timer = self._loop.timer(timeout_s, timeout_s if repeat else 0, self._exec_timer, (timer_key, repeat, fn))
 
         self._timers[timer_key] = timer
         timer.start()
