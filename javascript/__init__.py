@@ -6,6 +6,7 @@ from performance import Performance
 from timers import Timers
 from localstorage import LocalStorage
 from jsJSON import JSON
+from pebble import Pebble
 
 
 class PebbleKitJS(v8.JSClass):
@@ -14,6 +15,7 @@ class PebbleKitJS(v8.JSClass):
         self.performance = Performance()
         self.localStorage = LocalStorage()
         self.JSON = JSON()
+        self.Pebble = Pebble()
 
         timerImpl = Timers(loop)
         self.setTimeout = lambda x, y: timerImpl.setTimeout(x, y)
