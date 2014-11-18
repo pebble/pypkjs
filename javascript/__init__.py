@@ -7,6 +7,7 @@ from timers import Timers
 from localstorage import LocalStorage
 from jsJSON import JSON
 
+
 class PebbleKitJS(v8.JSClass):
     def __init__(self, loop):
         self.console = Console()

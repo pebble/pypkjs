@@ -1,8 +1,5 @@
 __author__ = 'katharine'
 
-import PyV8 as v8
-
-
 class Timers(object):
     def __init__(self, loop):
         self._loop = loop
@@ -11,9 +8,10 @@ class Timers(object):
 
     def _exec_timer(self, w, events):
         timer_key, repeat, fn = w.data
-        if not repeat:
-            del self._timers[timer_key]
-        fn()
+        if timer_key in self._timers:
+            if not repeat:
+                del self._timers[timer_key]
+            fn()
 
     def _run_timer(self, fn, timeout, repeat):
         if timeout < 4:
@@ -34,7 +32,7 @@ class Timers(object):
     def _clear_timer(self, timer_id, repeat):
         timer_key = (timer_id, repeat)
         if timer_key in self._timers:
-            self._timers[timer_id].stop()
+            self._timers[timer_key].stop()
             del self._timers[timer_key]
 
     def setTimeout(self, fn, timeout):

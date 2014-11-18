@@ -10,4 +10,4 @@ class Performance(v8.JSClass):
         v8.JSClass.__init__(self)
 
     def now(self):
-        return time.time() - self.start
+        return (time.time() - self.start) * 1000

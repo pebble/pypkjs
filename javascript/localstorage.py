@@ -9,7 +9,7 @@ class LocalStorage(v8.JSClass):
         v8.JSClass.__init__(self)
 
     def __setattr__(self, key, value):
-        object.__getattribute__(self, 'values')[key] = value
+        object.__getattribute__(self, 'values')[key] = str(value)
         pass
 
     def __delattr__(self, item):
@@ -37,7 +37,7 @@ class LocalStorage(v8.JSClass):
         return object.__getattribute__(self, 'values').get(item, None)
 
     def setItem(self, key, value):
-        object.__getattribute__(self, 'values')[key] = value
+        object.__getattribute__(self, 'values')[key] = str(value)
 
     def removeItem(self, key):
         try:

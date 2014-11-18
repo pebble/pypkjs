@@ -16,3 +16,6 @@ def run_script(src):
         # go!
         context.eval(src)
         loop.start()
+
+if __name__ == "__main__":
+    run_script(open('pebble-js-app.js', 'r').read().decode('utf-8'))
