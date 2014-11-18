@@ -7,6 +7,7 @@ from timers import Timers
 from localstorage import LocalStorage
 from jsJSON import JSON
 from pebble import Pebble
+from xhr import XMLHttpRequest
 
 
 class PebbleKitJS(v8.JSClass):
@@ -16,6 +17,7 @@ class PebbleKitJS(v8.JSClass):
         self.localStorage = LocalStorage()
         self.JSON = JSON()
         self.Pebble = Pebble()
+        self.XMLHttpRequest = XMLHttpRequest
 
         timerImpl = Timers(loop)
         self.setTimeout = lambda x, y: timerImpl.setTimeout(x, y)
