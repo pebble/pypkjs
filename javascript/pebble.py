@@ -1,29 +1,12 @@
 __author__ = 'katharine'
 
 import PyV8 as v8
+import events
 
 
-class Pebble(v8.JSClass):
-    def __init__(self):
-        self._listeners = {}
-
+class Pebble(events.EventSourceMixin, v8.JSClass):
     def _ready(self):
-        for listener in self._listeners.get("ready", []):
-            listener()
-
-    def addEventListener(self, event, listener, capture=False):
-        self._listeners.setdefault(event, []).append(listener)
-
-    def removeEventListener(self, event, listener=None):
-        if event not in self._listeners:
-            return
-        if listener is None:
-            del self._listeners[event]
-        else:
-            for i, listener_i in enumerate(self._listeners[event]):
-                if listener_i == listener:
-                    del listener[i]
-                    break
+        self.triggerEvent("ready")
 
     def sendAppMessage(self, message, success=None, failure=None):
         to_send = {}
