@@ -1,17 +1,22 @@
 __author__ = 'katharine'
 
+import gevent
+
+
 class Timers(object):
-    def __init__(self, loop):
-        self._loop = loop
+    def __init__(self, group):
+        self._group = group
         self._timers = {}
         self._counter = 1
 
-    def _exec_timer(self, w, events):
-        timer_key, repeat, fn = w.data
-        if timer_key in self._timers:
-            if not repeat:
-                del self._timers[timer_key]
-            fn()
+    def _exec_timer(self, timer_key, timeout_s, repeat, fn):
+        while True:
+            gevent.sleep(timeout_s)
+            if timer_key in self._timers:
+                self._group.spawn(fn)
+                if not repeat:
+                    del self._timers[timer_key]
+                    break
 
     def _run_timer(self, fn, timeout_ms, repeat):
         if timeout_ms < 4:
@@ -22,7 +27,7 @@ class Timers(object):
         self._counter += 1
 
         timeout_s = timeout_ms / 1000.0
-        timer = self._loop.timer(timeout_s, timeout_s if repeat else 0, self._exec_timer, (timer_key, repeat, fn))
+        timer = self._group.spawn(self._exec_timer, timer_key, timeout_s, repeat, fn)
 
         self._timers[timer_key] = timer
         timer.start()
@@ -32,7 +37,7 @@ class Timers(object):
     def _clear_timer(self, timer_id, repeat):
         timer_key = (timer_id, repeat)
         if timer_key in self._timers:
-            self._timers[timer_key].stop()
+            self._timers[timer_key].kill()
             del self._timers[timer_key]
 
     def setTimeout(self, fn, timeout):

@@ -11,7 +11,7 @@ from xhr import XMLHttpRequest
 
 
 class PebbleKitJS(v8.JSClass):
-    def __init__(self, loop):
+    def __init__(self, group):
         self.console = Console()
         self.performance = Performance()
         self.localStorage = LocalStorage()
@@ -19,7 +19,7 @@ class PebbleKitJS(v8.JSClass):
         self.Pebble = Pebble()
         self.XMLHttpRequest = XMLHttpRequest
 
-        timerImpl = Timers(loop)
+        timerImpl = Timers(group)
         self.setTimeout = lambda x, y: timerImpl.setTimeout(x, y)
         self.clearTimeout = lambda x: timerImpl.clearTimeout(x)
         self.setInterval = lambda x, y: timerImpl.setInterval(x, y)

@@ -1,12 +1,14 @@
+from gevent import monkey; monkey.patch_all()
 import PyV8 as v8
-import pyev
+import gevent
+import gevent.pool
 
 from javascript import PebbleKitJS
 
 
 def run_script(src):
-    loop = pyev.Loop()
-    pjs = PebbleKitJS(loop)
+    group = gevent.pool.Group()
+    pjs = PebbleKitJS(group)
     context = v8.JSContext(pjs)
     with context:
         # Do some setup
@@ -16,9 +18,8 @@ def run_script(src):
     with context:
         # go!
         context.eval(src)
-        ready_timer = loop.timer(0.2, 0, lambda a, b: pjs.Pebble._ready())
-        ready_timer.start()
-        loop.start()
+        group.add(gevent.spawn_later(0.2, pjs.Pebble._ready))
+        group.join()
 
 if __name__ == "__main__":
     run_script(open('pebble-js-app.js', 'r').read().decode('utf-8'))
