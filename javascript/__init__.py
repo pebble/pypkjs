@@ -19,8 +19,8 @@ class PebbleKitJS(v8.JSClass):
         self.Pebble = Pebble()
         self.XMLHttpRequest = XMLHttpRequest
 
-        timerImpl = Timers(group)
-        self.setTimeout = timerImpl.setTimeout
-        self.clearTimeout = timerImpl.clearTimeout
-        self.setInterval = timerImpl.setInterval
-        self.clearInterval = timerImpl.clearInterval
+        timer_impl = Timers(group)
+        self.setTimeout = timer_impl.setTimeout
+        self.clearTimeout = timer_impl.clearTimeout
+        self.setInterval = timer_impl.setInterval
+        self.clearInterval = timer_impl.clearInterval
