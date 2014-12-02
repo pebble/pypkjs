@@ -55,25 +55,26 @@ class EventSourceMixin(object):
                     del listener[i]
                     break
 
-    def triggerEvent(self, event, *params):
-        for listener in self._listeners.get(event, []):
+    def triggerEvent(self, event_name, event=None, *params):
+        if event is None:
+            event = Event(event_name)
+        for listener in self._listeners.get(event_name, []):
             try:
-                listener.call(self, *params)
+                listener.call(self, event, *params)
             except v8.JSError as e:
                 pass  #TODO: Figure out how to report these
             finally:
-                if len(params) > 0 and isinstance(params[0], Event) and params[0]:
-                    if params[0]._aborted:
-                        break
+                if event._aborted:
+                    break
 
         #TODO: Figure out if these come before or after addEventListener handlers.
         try:
-            dom_event = self.__getattribute__("on" + event)
+            dom_event = self.__getattribute__("on" + event_name)
         except AttributeError:
             pass
         else:
             try:
                 if dom_event is not None:
-                    dom_event.call(self)
+                    dom_event.call(self, event, *params)
             except v8.JSError as e:
                 pass  #TODO: error handling again

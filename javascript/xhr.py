@@ -80,7 +80,7 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
         self.readyState = self.DONE
         if not self.__async:
             raise Exception(exception)
-        self.triggerEvent("readystatechange", events.Event("readystatechange"))
+        self.triggerEvent("readystatechange")
 
     def _do_send(self):
         req = self.__session.prepare_request(self.__request)
@@ -89,7 +89,7 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
                 timeout = self.timeout / 1000.0
             else:
                 timeout = None
-            resp = self.__session.send(req, timeout=timeout, verify=False)
+            resp = self.__session.send(req, timeout=timeout, verify=True)
             self.readyState = self.DONE
             self.status = resp.status_code
             self.statusText = resp.reason
@@ -99,19 +99,16 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
                 self.response = resp.json()
             else:
                 self.response = self.responseText
-            gevent.sleep(0.1)
+
             self.triggerEvent("load", ProgressEvent())
         except requests.exceptions.Timeout:
             self.triggerEvent("timeout", ProgressEvent())
             self.readyState = self.DONE
         except requests.exceptions.RequestException:
             self.readyState = self.DONE
-        except Exception as e:
-            print e
-            raise
         finally:
             self.triggerEvent("loadend", ProgressEvent())
-            self.triggerEvent("readystatechange", events.Event("readystatechange"))
+            self.triggerEvent("readystatechange")
 
     def send(self, data=None):
         if data is not None:
