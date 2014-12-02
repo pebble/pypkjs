@@ -8,6 +8,7 @@ from localstorage import LocalStorage
 from jsJSON import JSON
 from pebble import Pebble
 from xhr import xhr_factory
+from navigator import Navigator
 
 
 class PebbleKitJS(v8.JSClass):
@@ -18,6 +19,7 @@ class PebbleKitJS(v8.JSClass):
         self.JSON = JSON()
         self.Pebble = Pebble()
         self.XMLHttpRequest = xhr_factory(group)
+        self.navigator = Navigator(group)
 
         timer_impl = Timers(group)
         self.setTimeout = timer_impl.setTimeout
