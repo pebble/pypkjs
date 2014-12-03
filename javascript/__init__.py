@@ -5,7 +5,6 @@ from console import Console
 from performance import Performance
 from timers import Timers
 from localstorage import LocalStorage
-from jsJSON import JSON
 from pebble import Pebble
 from xhr import xhr_factory
 from navigator import Navigator
@@ -16,7 +15,6 @@ class PebbleKitJS(v8.JSClass):
         self.console = Console()
         self.performance = Performance()
         self.localStorage = LocalStorage()
-        self.JSON = JSON()
         self.Pebble = Pebble()
         self.XMLHttpRequest = xhr_factory(group)
         self.navigator = Navigator(group)
