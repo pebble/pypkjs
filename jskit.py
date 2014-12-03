@@ -1,7 +1,5 @@
-from gevent import monkey; monkey.patch_all()
-import PyV8 as v8
-import gevent
-import gevent.pool
+from gevent import monkey
+monkey.patch_all()
 
 import javascript.runtime
 

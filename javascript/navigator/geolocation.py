@@ -3,6 +3,7 @@ __author__ = 'katharine'
 import PyV8 as v8
 import time
 
+
 class Position(v8.JSClass):
     def __init__(self, coords, timestamp):
         self.coords = coords

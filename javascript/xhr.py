@@ -1,7 +1,6 @@
 __author__ = 'katharine'
 
 from gevent import monkey; monkey.patch_all()
-import gevent
 import PyV8 as v8
 import requests
 import requests.exceptions
