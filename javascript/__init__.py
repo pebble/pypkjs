@@ -11,15 +11,15 @@ from navigator import Navigator
 
 
 class PebbleKitJS(v8.JSClass):
-    def __init__(self, group):
+    def __init__(self, runtime):
         self.console = Console()
         self.performance = Performance()
         self.localStorage = LocalStorage()
-        self.Pebble = Pebble()
-        self.XMLHttpRequest = xhr_factory(group)
-        self.navigator = Navigator(group)
+        self.Pebble = Pebble(runtime)
+        self.XMLHttpRequest = xhr_factory(runtime)
+        self.navigator = Navigator(runtime)
 
-        timer_impl = Timers(group)
+        timer_impl = Timers(runtime)
         self.setTimeout = timer_impl.setTimeout
         self.clearTimeout = timer_impl.clearTimeout
         self.setInterval = timer_impl.setInterval

@@ -4,8 +4,8 @@ import gevent
 
 
 class Timers(object):
-    def __init__(self, group):
-        self._group = group
+    def __init__(self, runtime):
+        self._runtime = runtime
         self._timers = {}
         self._counter = 1
 
@@ -13,7 +13,7 @@ class Timers(object):
         while True:
             gevent.sleep(timeout_s)
             if timer_key in self._timers:
-                self._group.spawn(fn)
+                self._runtime.enqueue(fn)
                 if not repeat:
                     del self._timers[timer_key]
                     break
@@ -27,7 +27,7 @@ class Timers(object):
         self._counter += 1
 
         timeout_s = timeout_ms / 1000.0
-        timer = self._group.spawn(self._exec_timer, timer_key, timeout_s, repeat, fn)
+        timer = self._runtime.group.spawn(self._exec_timer, timer_key, timeout_s, repeat, fn)
 
         self._timers[timer_key] = timer
         timer.start()

@@ -35,7 +35,7 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
     LOADING = 3
     DONE = 4
 
-    def __init__(self, group, session):
+    def __init__(self, runtime, session):
         # properties
         self.readyState = self.UNSENT
         self.response = None
@@ -59,11 +59,11 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
         self.__request = None
         self.__async = False
         self.__mime_override = None
-        self.__group = group
+        self.__runtime = runtime
         self.__session = session
         self.__thread = None
 
-        super(XMLHttpRequest, self).__init__()
+        super(XMLHttpRequest, self).__init__(runtime)
 
     def open(self, method, url, async=True, user=None, password=None):
         self.__request = requests.Request(method, url)
@@ -113,7 +113,7 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
     def send(self, data=None):
         if data is not None:
             self.__request.data = str(data)
-        self.__thread = self.__group.spawn(self._do_send)
+        self.__thread = self.__runtime.group.spawn(self._do_send)
         if not self.__async:
             self.__thread.join()
 
@@ -127,6 +127,6 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
         pass
 
 
-def xhr_factory(group):
+def xhr_factory(runtime):
     session = requests.Session()
-    return lambda: XMLHttpRequest(group, session)
+    return lambda: XMLHttpRequest(runtime, session)
