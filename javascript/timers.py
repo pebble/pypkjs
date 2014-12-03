@@ -13,7 +13,10 @@ class Timers(object):
         while True:
             gevent.sleep(timeout_s)
             if timer_key in self._timers:
-                self._runtime.enqueue(fn)
+                if callable(fn):
+                    self._runtime.enqueue(fn)
+                else:
+                    self._runtime.enqueue(self._runtime.context.eval, fn)
                 if not repeat:
                     del self._timers[timer_key]
                     break
