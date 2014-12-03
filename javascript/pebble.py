@@ -3,8 +3,22 @@ __author__ = 'katharine'
 import PyV8 as v8
 import events
 
+from pebblecomm.pebble import Pebble as PebbleComm
+
 
 class Pebble(events.EventSourceMixin, v8.JSClass):
+    def __init__(self, runtime, server):
+        self._pebble = PebbleComm()
+        self._server = server
+        super(Pebble, self).__init__(runtime)
+
+    def _connect(self):
+        self._pebble.connect_via_qemu(self._server)
+        self._ready()
+
+    def _disconnect(self):
+        self._pebble.disconnect()
+
     def _ready(self):
         self.triggerEvent("ready")
 
@@ -24,7 +38,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             failure()
 
     def showSimpleNotificationOnPebble(self, title, message):
-        pass
+        self._pebble.notification_sms(title, message)
 
     def getAccountToken(self):
         return "0123456789abcdef0123456789abcdef"

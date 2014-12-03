@@ -5,7 +5,7 @@ import javascript.runtime
 
 
 def run_script(src):
-    js = javascript.runtime.JSRuntime()
+    js = javascript.runtime.JSRuntime('localhost:12344')
     js.run(src)
 
 if __name__ == "__main__":

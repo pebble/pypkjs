@@ -11,11 +11,11 @@ from navigator import Navigator
 
 
 class PebbleKitJS(v8.JSClass):
-    def __init__(self, runtime):
+    def __init__(self, runtime, qemu):
         self.console = Console()
         self.performance = Performance()
         self.localStorage = LocalStorage()
-        self.Pebble = Pebble(runtime)
+        self.Pebble = Pebble(runtime, qemu)
         self.XMLHttpRequest = xhr_factory(runtime)
         self.navigator = Navigator(runtime)
 

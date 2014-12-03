@@ -10,12 +10,13 @@ from javascript import PebbleKitJS
 
 
 class JSRuntime(object):
-    def __init__(self):
+    def __init__(self, qemu):
         self.group = gevent.pool.Group()
         self.queue = gevent.queue.Queue()
+        self.qemu = qemu
 
     def setup(self):
-        self.pjs = PebbleKitJS(self)
+        self.pjs = PebbleKitJS(self, self.qemu)
         self.context = v8.JSContext(self.pjs)
         with self.context:
             # Do some setup
@@ -28,7 +29,7 @@ class JSRuntime(object):
         with self.context:
             # go!
             self.context.eval(src)
-            self.group.add(gevent.spawn_later(0.2, self.enqueue, self.pjs.Pebble._ready))
+            self.group.spawn(self.pjs.Pebble._connect)
 
             self.event_loop()
             self.group.kill()

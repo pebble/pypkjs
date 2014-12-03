@@ -1,0 +1,3 @@
+[submodule "libpebble"]
+	path = libpebble
+	url = git@github.com:pebble/libpebble-dev.git
