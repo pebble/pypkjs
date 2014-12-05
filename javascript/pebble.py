@@ -62,6 +62,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             print "Discarded message for %s (expected %s)" % (uuid, self._uuid)
             self._pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0x7F, tid))  # ACK
             return
+        app_keys = dict(zip(self._app_keys.values(), self._app_keys.keys()))
         try:
             tuple_count, = struct.unpack_from('<B', encoded_dict, 0)
             offset = 1
@@ -89,7 +90,9 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                     v, = struct.unpack_from('<%s' % widths[(t, l)], encoded_dict, offset)
                 else:
                     raise Exception("Received bad appmessage dict.")
-                d[k] = v
+                if k in app_keys:
+                    k = app_keys[k]
+                d[str(k)] = v
                 offset += l
         except:
             self._pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0x7F, tid))  # NACK
@@ -98,7 +101,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             self._pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0xFF, tid))  # ACK
             e = events.Event("AppMessage")
             e.payload = d
-            self.triggerEvent("AppMessage", e)
+            self.triggerEvent("appmessage", e)
 
     def _check_ready(self):
         if not self._is_ready:
