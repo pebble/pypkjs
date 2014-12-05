@@ -7,5 +7,6 @@ from geolocation import Geolocation
 class Navigator(v8.JSClass):
     def __init__(self, runtime):
         # W3C spec says that if geolocation is disabled, navigator.geolocation should not exist.
-        if 'location' in runtime.manifest.get('capabilities', []):
+        # if 'location' in runtime.manifest.get('capabilities', []):
+        if True:
             self.geolocation = Geolocation(runtime)
