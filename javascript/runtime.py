@@ -10,10 +10,11 @@ from javascript import PebbleKitJS
 
 
 class JSRuntime(object):
-    def __init__(self, qemu):
+    def __init__(self, qemu, manifest):
         self.group = gevent.pool.Group()
         self.queue = gevent.queue.Queue()
         self.qemu = qemu
+        self.manifest = manifest
 
     def setup(self):
         self.pjs = PebbleKitJS(self, self.qemu)

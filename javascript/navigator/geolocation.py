@@ -23,10 +23,10 @@ class Geolocation(v8.JSClass):
         self.__runtime = runtime
 
     def getCurrentPosition(self, success, failure=None, options=None):
-        self.__runtime.enqueue(success, Position(Coordinates(37.4401251, -122.1583327, 10), int(time.time() * 1000)))
+        self.__runtime.enqueue(success, Position(Coordinates(-122.1583327, 37.4401251, 10), int(time.time() * 1000)))
 
     def watchPosition(self, success, failure=None, options=None):
-        self.__runtime.enqueue(success, Position(Coordinates(37.4401251, -122.1583327, 10), int(time.time() * 1000)))
+        self.__runtime.enqueue(success, Position(Coordinates(-122.1583327, 37.4401251, 10), int(time.time() * 1000)))
         return 42
 
     def clearWatch(self, thing):
