@@ -9,7 +9,7 @@ import PyV8 as v8
 from pebblecomm.pebble import Pebble as PebbleComm, AppMessage
 
 import events
-
+from exceptions import JSRuntimeException
 
 class Pebble(events.EventSourceMixin, v8.JSClass):
     def __init__(self, runtime, server):
@@ -105,7 +105,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
 
     def _check_ready(self):
         if not self._is_ready:
-            raise Exception("Can't interact with the watch before the ready event is fired.")
+            raise JSRuntimeException(self._runtime, "Can't interact with the watch before the ready event is fired.")
 
     def sendAppMessage(self, message, success=None, failure=None):
         self._check_ready()
@@ -117,7 +117,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             try:
                 to_send[int(k)] = v
             except ValueError:
-                raise Exception("Unknown message key '%s'" % k)
+                raise JSRuntimeException(self._runtime, "Unknown message key '%s'" % k)
 
         tuples = []
         appmessage = AppMessage()
@@ -136,14 +136,14 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                         if 0 <= byte <= 255:
                             fmt.append('B')
                         else:
-                            raise Exception("Bytes must be between 0 and 255 inclusive.")
+                            raise JSRuntimeException(self._runtime, "Bytes must be between 0 and 255 inclusive.")
                     elif isinstance(byte, str):  # This is intentionally not basestring; unicode won't work.
                         fmt.append('%ss' % len(byte))
                     else:
-                        raise Exception("Unexpected value in byte array.")
+                        raise JSRuntimeException(self._runtime, "Unexpected value in byte array.")
                 v = struct.pack(''.join(fmt), v)
             else:
-                raise Exception("Invalid value data type for key %s" % k)
+                raise JSRuntimeException(self._runtime, "Invalid value data type for key %s" % k)
             tuples.append(appmessage.build_tuple(k, t, v))
 
         d = appmessage.build_dict(tuples)
@@ -157,7 +157,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         self._pebble.notification_sms(title, message)
 
     def showNotificationOnPebble(self, opts):
-        raise NotImplemented
+        pass
 
     def getAccountToken(self):
         self._check_ready()

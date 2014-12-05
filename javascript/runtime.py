@@ -7,6 +7,7 @@ import gevent.queue
 import gevent.hub
 
 from javascript import PebbleKitJS
+from javascript.exceptions import JSRuntimeException
 
 
 class JSRuntime(object):
@@ -24,12 +25,16 @@ class JSRuntime(object):
             self.context.eval("this.toString = function() { return '[object Window]'; }")
             self.context.eval("window = this;")
 
-    def run(self, src):
+    def run(self, src, filename="pebble-js-app.js"):
         self.setup()
 
         with self.context:
             # go!
-            self.context.eval(src)
+            try:
+                self.context.eval(src, filename)
+            except (v8.JSError, JSRuntimeException) as e:
+                print e.stackTrace  #TODO: Figure out how to report these
+                return
             self.group.spawn(self.pjs.Pebble._connect)
 
             self.event_loop()

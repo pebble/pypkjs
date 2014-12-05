@@ -2,6 +2,7 @@ __author__ = 'katharine'
 
 import PyV8 as v8
 
+from javascript.exceptions import JSRuntimeException
 
 class Event(v8.JSClass):
     NONE = 0
@@ -64,7 +65,8 @@ class EventSourceMixin(object):
             for listener in self._listeners.get(event_name, []):
                 try:
                     listener.call(self, event, *params)
-                except v8.JSError as e:
+                except (v8.JSError, JSRuntimeException) as e:
+                    print e.stackTrace
                     pass  #TODO: Figure out how to report these
                 finally:
                     if event._aborted:
