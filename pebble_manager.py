@@ -23,7 +23,7 @@ class PebbleManager(object):
         self.pebble.disconnect()
 
     def handle_lifecycle(self, endpoint, data):
-        state = struct.unpack_from('<B', data, 0)
+        state, = struct.unpack_from('<B', data, 0)
         uuid = UUID(bytes=data[1:])
         print "received lifecycle message for %s: %s" % (uuid, state)
         if state == 0x01:  # running
