@@ -12,9 +12,8 @@ import events
 from exceptions import JSRuntimeException
 
 class Pebble(events.EventSourceMixin, v8.JSClass):
-    def __init__(self, runtime, server):
-        self._pebble = PebbleComm()
-        self._server = server
+    def __init__(self, runtime, pebble):
+        self._pebble = pebble.pebble
         self._tid = 0
         self._uuid = UUID(runtime.manifest['uuid'])
         self._app_keys = runtime.manifest['appKeys']
@@ -23,14 +22,10 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         super(Pebble, self).__init__(runtime)
 
     def _connect(self):
-        self._pebble.connect_via_qemu(self._server)
-        self._pebble.register_endpoint("APPLICATION_MESSAGE", self._handle_appmessage)
         self._ready()
 
-    def _disconnect(self):
-        self._pebble.disconnect()
-
     def _ready(self):
+        self._pebble.register_endpoint("APPLICATION_MESSAGE", self._handle_appmessage)
         self._is_ready = True
         self.triggerEvent("ready")
 

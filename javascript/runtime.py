@@ -30,15 +30,18 @@ class JSRuntime(object):
 
         with self.context:
             # go!
+            print "JS starting"
             try:
                 self.context.eval(src, filename)
             except (v8.JSError, JSRuntimeException) as e:
                 print e.stackTrace  #TODO: Figure out how to report these
+                print "JS failed."
                 return
             self.group.spawn(self.pjs.Pebble._connect)
 
             self.event_loop()
-            self.group.kill()
+            self.group.kill(timeout=2)
+            print "JS finished"
 
     def stop(self):
         self.queue.put(StopIteration)
@@ -52,4 +55,3 @@ class JSRuntime(object):
                 fn(*args, **kwargs)
         except gevent.hub.LoopExit:
             print "Runtime ran out of events; terminating."
-            return
