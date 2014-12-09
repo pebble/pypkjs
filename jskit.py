@@ -29,6 +29,10 @@ class Runner(object):
     def load_pbws(self, pbws):
         for pbw_path in pbws:
             with zipfile.ZipFile(pbw_path) as z:
+                try:
+                    z.getinfo('pebble-js-app.js')
+                except KeyError:
+                    continue
                 appinfo = z.open('appinfo.json').read()
                 src = z.open('pebble-js-app.js').read().decode('utf-8')
             manifest = json.loads(appinfo)
