@@ -5,6 +5,7 @@ import zipfile
 import json
 import gevent
 import collections
+import sys
 from uuid import UUID
 
 import javascript.runtime
@@ -79,5 +80,5 @@ def run_pbw(qemu, pbw_path):
 
 if __name__ == "__main__":
     # run_script('localhost:12344', open('pebble-js-app.js', 'r').read().decode('utf-8'))
-    runner = Runner('localhost:12344', ['/Users/katharine/Downloads/twc (5).pbw', '/Users/katharine/Downloads/Love_Weather-3.pbw'])
+    runner = Runner(sys.argv[1], sys.argv[2:])
     runner.run()
