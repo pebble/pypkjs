@@ -72,6 +72,9 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
         self.readyState = self.OPENED
         self.triggerEvent("readystatechange")
 
+    def setRequestHeader(self, header, value):
+        self.__request.headers[header] = value
+
     def overrideMimeType(self, mimetype):
         self.__mime_override = mimetype
 
