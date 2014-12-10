@@ -4,6 +4,7 @@ from gevent import monkey; monkey.patch_all()
 import PyV8 as v8
 import requests
 import requests.exceptions
+import exceptions
 import events
 
 
@@ -61,6 +62,7 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
         self.__runtime = runtime
         self.__session = session
         self.__thread = None
+        self.__sent = False
 
         super(XMLHttpRequest, self).__init__(runtime)
 
@@ -73,9 +75,15 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
         self.triggerEvent("readystatechange")
 
     def setRequestHeader(self, header, value):
+        if self.readyState != self.OPENED:
+            raise exceptions.JSRuntimeException(self.__runtime, "Request headers can only be set in the OPENED state.")
+        if self.__sent:
+            raise exceptions.JSRuntimeException(self.__runtime, "Request headers cannot be set after sending a request.")
         self.__request.headers[header] = value
 
     def overrideMimeType(self, mimetype):
+        if self.readyState >= self.LOADING:
+            raise exceptions.JSRuntimeException(self.__runtime, "The mime type cannot be overridden after the request starts loading.")
         self.__mime_override = mimetype
 
     def _do_request_error(self, exception, event):
@@ -85,6 +93,7 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
         self.triggerEvent("readystatechange")
 
     def _do_send(self):
+        self.__sent = True
         req = self.__session.prepare_request(self.__request)
         try:
             if self.timeout:
