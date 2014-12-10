@@ -1,0 +1,9 @@
+backports.ssl-match-hostname==3.4.0.2
+gevent==1.0.1
+greenlet==0.4.5
+pypng==0.0.17
+requests==2.5.0
+sh==1.09
+six==1.8.0
+websocket-client==0.22.0
+wsgiref==0.1.2
