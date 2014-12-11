@@ -55,3 +55,6 @@ class JSRuntime(object):
                 fn(*args, **kwargs)
         except gevent.hub.LoopExit:
             print "Runtime ran out of events; terminating."
+
+    def log_output(self, message):
+        raise NotImplemented

@@ -14,13 +14,16 @@ class PebbleManager(object):
         self.handle_stop = None
 
     def connect(self):
-        self.pebble.register_endpoint("APPLICATION_LIFECYCLE", self.handle_lifecycle)
-        self.pebble.register_endpoint("LAUNCHER", self.handle_launcher)
+        self.register_endpoints()
         self.pebble.connect_via_qemu(self.qemu)
         print 'connected to %s' % self.qemu
 
     def disconnect(self):
         self.pebble.disconnect()
+
+    def register_endpoints(self):
+        self.pebble.register_endpoint("APPLICATION_LIFECYCLE", self.handle_lifecycle)
+        self.pebble.register_endpoint("LAUNCHER", self.handle_launcher)
 
     def handle_lifecycle(self, endpoint, data):
         state, = struct.unpack_from('<B', data, 0)

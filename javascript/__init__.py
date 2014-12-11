@@ -12,7 +12,7 @@ from navigator import Navigator
 
 class PebbleKitJS(v8.JSClass):
     def __init__(self, runtime, pebble):
-        self.console = Console()
+        self.console = Console(runtime)
         self.performance = Performance()
         self.localStorage = LocalStorage()
         self.Pebble = Pebble(runtime, pebble)
