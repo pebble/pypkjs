@@ -16,6 +16,7 @@ class PebbleManager(object):
     def connect(self):
         self.register_endpoints()
         self.pebble.connect_via_qemu(self.qemu)
+        self.request_running_app()
         print 'connected to %s' % self.qemu
 
     def disconnect(self):
@@ -24,6 +25,10 @@ class PebbleManager(object):
     def register_endpoints(self):
         self.pebble.register_endpoint("APPLICATION_LIFECYCLE", self.handle_lifecycle)
         self.pebble.register_endpoint("LAUNCHER", self.handle_launcher)
+
+    def request_running_app(self):
+        # This is an appmessage with a null UUID and dictionary {2: 1} with a uint8 value.
+        self.pebble._send_message("LAUNCHER", "\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x00\x00\x00\x02\x01\x00\x01")
 
     def handle_lifecycle(self, endpoint, data):
         state, = struct.unpack_from('<B', data, 0)
@@ -38,6 +43,8 @@ class PebbleManager(object):
 
     def handle_launcher(self, endpoint, data):
         # World's laziest appmessage parser
+        if data[0] != '\x01':  # ignore anything other than pushed data.
+            return
         uuid = UUID(bytes=data[2:18])
         state, = struct.unpack('<B', data[26])
         # we should ack it
