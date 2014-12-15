@@ -8,8 +8,6 @@ import sys
 
 import javascript.runtime
 from runner.terminal import TerminalRunner
-# from runner.websocket import WebsocketRunner
-
 
 
 def run_script(qemu, src):
@@ -25,8 +23,8 @@ def run_pbw(qemu, pbw_path):
     js = javascript.runtime.JSRuntime(qemu, manifest)
     js.run(src)
 
+
 if __name__ == "__main__":
-    # run_script('localhost:12344', open('pebble-js-app.js', 'r').read().decode('utf-8'))
     runner = TerminalRunner(sys.argv[1], sys.argv[2:])
-    # runner = WebsocketRunner(sys.argv[1], sys.argv[2:], 12346, '55189eacccc2c4c0252cd5f8037030c02a195174d7e0f78df598343258a098a7')
     runner.run()
+
