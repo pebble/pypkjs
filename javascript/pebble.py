@@ -11,6 +11,7 @@ from pebblecomm.pebble import Pebble as PebbleComm, AppMessage
 import events
 from exceptions import JSRuntimeException
 
+
 class Pebble(events.EventSourceMixin, v8.JSClass):
     def __init__(self, runtime, pebble):
         self._pebble = pebble.pebble
@@ -61,7 +62,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         try:
             tuple_count, = struct.unpack_from('<B', encoded_dict, 0)
             offset = 1
-            d = {}
+            d = v8.JSClass()
             for i in xrange(tuple_count):
                 k, t, l = struct.unpack_from('<IBH', encoded_dict, offset)
                 offset += 7
@@ -87,7 +88,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                     raise Exception("Received bad appmessage dict.")
                 if k in app_keys:
                     k = app_keys[k]
-                d[str(k)] = v
+                d.__setattr__(str(k), v)
                 offset += l
         except:
             self._pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0x7F, tid))  # NACK
