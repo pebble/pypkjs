@@ -108,3 +108,75 @@ class Int32Array(TypedArray):
         self._width = 4
         self.name = "Int32Array"
         TypedArray.__init__(self, *args)
+
+
+class DataView(v8.JSClass):
+    def __init__(self, buffer, byteOffset=0, byteLength=None):
+        self._buffer = buffer
+        self._offset = byteOffset
+        self._length = byteLength
+        if self._length is None:
+            self._length = len(self._buffer._array)
+
+    @property
+    def buffer(self):
+        return self._buffer
+
+    @property
+    def byteLength(self):
+        return self._length
+
+    @property
+    def byteOffset(self):
+        return self._offset
+
+    def getInt8(self, i):
+        return struct.unpack_from('<b', self._buffer._array, self._offset + i)
+
+    def getUint8(self, i):
+        return struct.unpack_from('<B', self._buffer._array, self._offset + i)
+
+    def getInt16(self, i):
+        return struct.unpack_from('<h', self._buffer._array, self._offset + i)
+
+    def getUint16(self, i):
+        return struct.unpack_from('<H', self._buffer._array, self._offset + i)
+
+    def getInt32(self, i):
+        return struct.unpack_from('<i', self._buffer._array, self._offset + i)
+
+    def getUint32(self, i):
+        return struct.unpack_from('<I', self._buffer._array, self._offset + i)
+
+    def getFloat32(self, i):
+        return struct.unpack_from('<f', self._buffer._array, self._offset + i)
+
+    def getFloat64(self, i):
+        return struct.unpack_from('<d', self._buffer._array, self._offset + i)
+
+    def setInt8(self, i, v, *args):
+        self._buffer._array[i] = int(round(v))
+
+    def setUint8(self, i, v, *args):
+        print v
+        if v != v:
+            v = 0
+        self._buffer._array[int(i)] = int(round(v))
+
+    def setInt16(self, i, v, *args):
+        self._buffer._array[i:i+2] = array.array('B', struct.pack('<h', v))
+
+    def setUint16(self, i, v, *args):
+        self._buffer._array[i:i+2] = array.array('B', struct.pack('<H', v))
+
+    def setInt32(self, i, v, *args):
+        self._buffer._array[i:i+4] = array.array('B', struct.pack('<i', v))
+
+    def setUint32(self, i, v, *args):
+        self._buffer._array[i:i+4] = array.array('B', struct.pack('<I', v))
+
+    def setFloat32(self, i, v, *args):
+        self._buffer._array[i:i+4] = array.array('B', struct.pack('<f', v))
+
+    def setFloat64(self, i, v, *args):
+        self._buffer._array[i:i+8] = array.array('B', struct.pack('<d', v))

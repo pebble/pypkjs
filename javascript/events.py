@@ -65,9 +65,9 @@ class EventSourceMixin(object):
             for listener in self._listeners.get(event_name, []):
                 try:
                     listener.call(self, event, *params)
-                except (v8.JSError, JSRuntimeException) as e:
-                    print e.stackTrace
-                    pass  #TODO: Figure out how to report these
+                except Exception as e:
+                    self._runtime.log_output(JSRuntimeException(self._runtime, e.message).stackTrace)
+                    raise
                 finally:
                     if event._aborted:
                         break
@@ -80,8 +80,9 @@ class EventSourceMixin(object):
                 try:
                     if dom_event is not None:
                         dom_event.call(self, event, *params)
-                except v8.JSError as e:
-                    pass  #TODO: error handling again
+                except Exception as e:
+                    self._runtime.log_output(JSRuntimeException(self._runtime, e.message).stackTrace)
+                    raise
 
         self._runtime.enqueue(go)
 

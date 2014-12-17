@@ -25,9 +25,14 @@ class PebbleKitJS(v8.JSClass):
         self.setInterval = timer_impl.setInterval
         self.clearInterval = timer_impl.clearInterval
 
-        self.Uint8Array = typedarrays.Uint8Array
-        self.Int8Array = typedarrays.Int8Array
-        self.Uint16Array = typedarrays.Uint16Array
-        self.Int16Array = typedarrays.Int16Array
-        self.Uint32Array = typedarrays.Uint32Array
-        self.Int32Array = typedarrays.Int32Array
+    def _set_typedarrays(self, runtime):
+        with runtime.context:
+            l = runtime.context.locals
+            l.ArrayBuffer = typedarrays.ArrayBuffer
+            l.Uint8Array = typedarrays.Uint8Array
+            l.Int8Array = typedarrays.Int8Array
+            l.Uint16Array = typedarrays.Uint16Array
+            l.Int16Array = typedarrays.Int16Array
+            l.Uint32Array = typedarrays.Uint32Array
+            l.Int32Array = typedarrays.Int32Array
+            # l.DataView = typedarrays.DataView

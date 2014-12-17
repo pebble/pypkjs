@@ -6,7 +6,8 @@ import requests
 import requests.exceptions
 import exceptions
 import events
-
+import typedarrays
+import array
 
 class ProgressEvent(events.Event):
     def __init__(self, computable=False, loaded=0, total=0):
@@ -108,6 +109,9 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
 
             if self.responseType == "json":
                 self.response = resp.json()
+            elif self.responseType == "arraybuffer":
+                self.response = typedarrays.ArrayBuffer(len(resp.content))
+                self.response._array = array.array('B', resp.content)
             else:
                 self.response = self.responseText
 

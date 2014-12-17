@@ -29,14 +29,17 @@ class JSRuntime(object):
         self.setup()
 
         with self.context:
+            self.pjs._set_typedarrays(self)
             # go!
             print "JS starting"
             try:
                 self.context.eval(src, filename)
-            except (v8.JSError, JSRuntimeException) as e:
-                print e.stackTrace  #TODO: Figure out how to report these
-                print "JS failed."
-                return
+            except SyntaxError as e:
+                self.log_output(e.message)
+                self.log_output("JS failed.")
+            except Exception as e:
+                self.log_output(JSRuntimeException(self, e.message).stackTrace)
+                raise
             self.group.spawn(self.pjs.Pebble._connect)
 
             self.event_loop()
