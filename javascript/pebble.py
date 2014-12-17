@@ -118,6 +118,8 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         tuples = []
         appmessage = AppMessage()
         for k, v in to_send.iteritems():
+            if isinstance(v, v8.JSArray):
+                v = list(v)
             if isinstance(v, basestring):
                 t = "CSTRING"
                 v += '\x00'
@@ -137,9 +139,9 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                         fmt.append('%ss' % len(byte))
                     else:
                         raise JSRuntimeException(self._runtime, "Unexpected value in byte array.")
-                v = struct.pack(''.join(fmt), v)
+                v = struct.pack(''.join(fmt), *v)
             else:
-                raise JSRuntimeException(self._runtime, "Invalid value data type for key %s" % k)
+                raise JSRuntimeException(self._runtime, "Invalid value data type for key %s: %s" % (k, type(v)))
             tuples.append(appmessage.build_tuple(k, t, v))
 
         d = appmessage.build_dict(tuples)
