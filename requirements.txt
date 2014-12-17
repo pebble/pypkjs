@@ -3,6 +3,7 @@ gevent==1.0.1
 gevent-websocket==0.9.3
 greenlet==0.4.5
 pyev==0.9.0
+pygeoip==0.3.2
 pypng==0.0.17
 requests==2.5.0
 sh==1.09
