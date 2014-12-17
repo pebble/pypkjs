@@ -34,10 +34,10 @@ class Geolocation(v8.JSClass):
             record = gi.record_by_addr(ip)
             if record is None:
                 if callable(failure):
-                    failure()
+                    self.__runtime.enqueue(failure)
         except (requests.RequestException, pygeoip.GeoIPError):
             if callable(failure):
-                failure()
+                self.__runtime.enqueue(failure)
         else:
             self.__runtime.enqueue(success, Position(Coordinates(record['longitude'], record['latitude'], 1000), int(time.time() * 1000)))
 
