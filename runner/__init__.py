@@ -7,6 +7,7 @@ import gevent
 import json
 
 import javascript
+import javascript.runtime
 from pebble_manager import PebbleManager
 
 
