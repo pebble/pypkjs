@@ -126,6 +126,9 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             elif isinstance(v, int):
                 t = "INT"
                 v = struct.pack('<i', v)
+            elif isinstance(v, float):  # thanks, javascript
+                t = "INT"
+                v = struct.pack('<i', int(round(v)))
             elif isinstance(v, collections.Sequence):
                 t = "BYTE_ARRAY"
                 fmt = ['<']
