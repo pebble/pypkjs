@@ -3,6 +3,7 @@ __author__ = 'katharine'
 import struct
 import tempfile
 import gevent
+import ssl
 from gevent import pywsgi
 from geventwebsocket import WebSocketError
 from geventwebsocket.handler import WebSocketHandler
@@ -11,18 +12,28 @@ from runner import Runner
 
 
 class WebsocketRunner(Runner):
-    def __init__(self, qemu, pbws, port, token):
+    def __init__(self, qemu, pbws, port, token, ssl_root=None):
         self.port = port
         self.token = token
         self.authed = False
         self.server = None
         self.ws = None
+        self.ssl_root = ssl_root
         super(WebsocketRunner, self).__init__(qemu, pbws)
 
     def run(self):
         self.pebble.connect()
         self.patch_pebble()
-        self.server = pywsgi.WSGIServer(("", self.port), self.handle_ws, handler_class=WebSocketHandler)
+        if self.ssl_root is not None:
+            ssl_args = {
+                'keyfile': '%s/server-key.pem' % self.ssl_root,
+                'certfile': '%s/server-cert.pem' % self.ssl_root,
+                'ca_certs': '%s/ca-cert.pem' % self.ssl_root,
+                'ssl_version': ssl.PROTOCOL_TLSv1,
+            }
+        else:
+            ssl_args = {}
+        self.server = pywsgi.WSGIServer(("", self.port), self.handle_ws, handler_class=WebSocketHandler, **ssl_args)
         self.server.serve_forever()
         self.pebble.disconnect()
 
