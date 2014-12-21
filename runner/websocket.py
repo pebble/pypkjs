@@ -75,7 +75,7 @@ class WebsocketRunner(Runner):
         self.authed = False
 
     def on_close(self):
-        self.server.stop()
+        pass
 
     # https://pebbletechnology.atlassian.net/wiki/pages/viewpage.action?pageId=491742
     def on_message(self, message):
