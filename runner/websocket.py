@@ -135,13 +135,13 @@ class WebsocketRunner(Runner):
 
                 except:
                     try:
-                        self.ws.send(bytearray([0x05, 0x01]))
+                        self.ws.send(bytearray([0x05, 0x00, 0x00, 0x00, 0x01]))
                     except WebSocketError:
                         pass
                     raise
                 else:
                     try:
-                        self.ws.send(bytearray([0x05, 0x00]))
+                        self.ws.send(bytearray([0x05, 0x00, 0x00, 0x00, 0x00]))
                     except WebSocketError:
                         pass
         gevent.spawn(go_do_install)
