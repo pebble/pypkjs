@@ -100,11 +100,18 @@ class WebsocketRunner(Runner):
         opcode_handlers = {
             0x01: self.do_relay,
             0x04: self.do_install,
+            0x06: self.do_phone_info,
             0x09: self.do_auth,
         }
 
         if opcode in opcode_handlers:
             opcode_handlers[opcode](message[1:])
+
+    def do_phone_info(self, message):
+        try:
+            self.ws.send(bytearray("\x06pypkjs,0.0.0,qemu"))
+        except WebSocketError:
+            pass
 
     def do_auth(self, message):
         length = message[0]
