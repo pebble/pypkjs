@@ -107,6 +107,7 @@ class WebsocketRunner(Runner):
         if opcode in opcode_handlers:
             opcode_handlers[opcode](message[1:])
 
+    @must_auth
     def do_phone_info(self, message):
         try:
             self.ws.send(bytearray("\x06pypkjs,0.0.0,qemu"))
