@@ -4,38 +4,35 @@ import PyV8 as v8
 
 from javascript.exceptions import JSRuntimeException
 
-class Event(v8.JSClass):
-    NONE = 0
-    CAPTURING_PHASE = 1
-    AT_TARGET = 2
-    BUBBLING_PHASE = 3
+event = v8.JSExtension("runtime/event", """
+    Event = function(event_type, event_init_dict) {
+        var self = this;
+        this.stopPropagation = function() {};
+        this.stopImmediatePropagation = function() { self._aborted = true; }
+        this.preventDefault = function() { self.defaultPrevented = true; }
+        this.initEvent = function(event_type, bubbles, cancelable) {
+            self.type = event_type;
+            self.bubbles = bubbles;
+            self.cancelable = cancelable
+        };
+        if(!event_init_dict) event_init_dict = {};
 
-    def __init__(self, event_type, event_init_dict=None):
-        event_init_dict = event_init_dict or {}
-        self.type = event_type
-        self.bubbles = event_init_dict.get('bubbles', False)
-        self.cancelable = event_init_dict.get('cancelable', False)
-        self.defaultPrevented = False
-        self.target = None
-        self.currentTarget = None
-        self.eventPhase = self.AT_TARGET  # Neither capturing nor bubbling exist, so...
+        this.type = event_type;
+        this.bubbles = event_init_dict.bubbles || false;
+        this.cancelable = event_init_dict.cancelable || false;
+        this.defaultPrevented = false;
+        this.target = null;
+        this.currentTarget = null;
+        this.eventPhase = 2;
+        this._aborted = false;
+    };
+    Event.NONE = 0;
+    Event.CAPTURING_PHASE = 1;
+    Event.AT_TARGET = 2;
+    Event.BUBBLING_PHASE = 3;
+""")
 
-        self._aborted = False
-
-    def stopPropagation(self):
-        pass
-
-    def stopImmediatePropagation(self):
-        self._aborted = True
-
-    def preventDefault(self):
-        self.defaultPrevented = True
-
-    def initEvent(self, event_type, bubbles, cancelable):
-        self.type = event_type
-        self.bubbles = bubbles
-        self.cancelable = cancelable
-
+Event = lambda runtime, *args: v8.JSObject.create(runtime.context.locals.Event, args)
 
 class EventSourceMixin(object):
     def __init__(self, runtime):
@@ -59,7 +56,7 @@ class EventSourceMixin(object):
 
     def triggerEvent(self, event_name, event=None, *params):
         if event is None:
-            event = Event(event_name)
+            event = Event(self._runtime, event_name)
 
         def go():
             for listener in self._listeners.get(event_name, []):

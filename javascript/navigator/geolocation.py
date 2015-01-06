@@ -6,22 +6,27 @@ import requests
 import pygeoip
 import os.path
 
+position = v8.JSExtension("runtime/geolocation/position", """
+    Position = (function(coords, timestamp) {
+        this.coords = coords;
+        this.timestamp = timestamp;
+    });
+""")
 
-class Position(v8.JSClass):
-    def __init__(self, coords, timestamp):
-        self.coords = coords
-        self.timestamp = timestamp
+Position = lambda runtime, *args: v8.JSObject.create(runtime.context.locals.Position, args)
+
+coordinates = v8.JSExtension("runtime/geolocation/coordinates", """
+    Coordinates = (function(long, lat, accuracy) {
+        this.longitude = long
+        this.latitude = lat
+        this.accuracy = accuracy
+    });
+""")
+
+Coordinates = lambda runtime, *args: v8.JSObject.create(runtime.context.locals.Coordinates, args)
 
 
-class Coordinates(v8.JSClass):
-    def __init__(self, long, lat, accuracy):
-        self.longitude = long
-        self.latitude = lat
-        self.accuracy = accuracy
-
-
-
-class Geolocation(v8.JSClass):
+class Geolocation(object):
     def __init__(self, runtime):
         self.__runtime = runtime
 
@@ -39,7 +44,10 @@ class Geolocation(v8.JSClass):
             if callable(failure):
                 self.__runtime.enqueue(failure)
         else:
-            self.__runtime.enqueue(success, Position(Coordinates(record['longitude'], record['latitude'], 1000), int(time.time() * 1000)))
+            self.__runtime.enqueue(success, Position(self.__runtime, Coordinates(self.__runtime, record['longitude'], record['latitude'], 1000), int(time.time() * 1000)))
+
+    def _enabled(self):
+        return True
 
     def getCurrentPosition(self, success, failure=None, options=None):
         self.__runtime.group.spawn(self._get_position, success, failure)

@@ -4,11 +4,16 @@ import PyV8 as v8
 import time
 
 
-class Performance(v8.JSClass):
+class Performance(object):
     # This is an approximation for now
-    def __init__(self):
-        self.start = time.time()
-        v8.JSClass.__init__(self)
+    def __init__(self, runtime):
+        self.extension = v8.JSExtension(runtime.ext_name("performance"), """
+            performance = new (function() {
+                native function _time();
+                var start = _time();
 
-    def now(self):
-        return (time.time() - self.start) * 1000
+                this.now = function() {
+                    return (_time() - start) * 1000;
+                };
+            })();
+        """, lambda f: lambda: time.time())

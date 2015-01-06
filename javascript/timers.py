@@ -1,13 +1,19 @@
 __author__ = 'katharine'
 
 import gevent
-
+import PyV8 as v8
 
 class Timers(object):
     def __init__(self, runtime):
         self._runtime = runtime
         self._timers = {}
         self._counter = 1
+        self.extension = v8.JSExtension(self._runtime.ext_name('timers'), """
+        (function() {
+            native function _timers();
+            _make_proxies(this, _timers(), ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval']);
+        })();
+        """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
 
     def _exec_timer(self, timer_key, timeout_s, repeat, fn):
         while True:

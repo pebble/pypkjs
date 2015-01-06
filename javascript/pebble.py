@@ -14,6 +14,14 @@ from exceptions import JSRuntimeException
 
 class Pebble(events.EventSourceMixin, v8.JSClass):
     def __init__(self, runtime, pebble):
+        self.extension = v8.JSExtension(runtime.ext_name("pebble"), """
+        Pebble = new (function() {
+            native function _internal_pebble();
+            _make_proxies(this, _internal_pebble(),
+                ['sendAppMessage', 'showSimpleNotificationOnPebble', 'getAccountToken', 'getWatchToken',
+                'addEventListener', 'removeEventListener']);
+        })();
+        """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
         self._pebble = pebble.pebble
         self._tid = 0
         self._uuid = UUID(runtime.manifest['uuid'])

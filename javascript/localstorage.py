@@ -3,57 +3,72 @@ __author__ = 'katharine'
 import PyV8 as v8
 
 
-class LocalStorage(v8.JSClass):
-    def __init__(self):
-        object.__setattr__(self, 'values', {})
-        v8.JSClass.__init__(self)
+class LocalStorage(object):
+    def __init__(self, runtime):
+        self.extension = v8.JSExtension(runtime.ext_name("localstorage"), """
+        localStorage = Object.create({}, {
+            getItem: {
+                value: function(item) {
+                    var value = localStorage[item];
+                    if(value === undefined) {
+                        return null;
+                    } else {
+                        return value;
+                    }
+                }
+            },
+            setItem: {
+                value: function(item, value) {
+                    localStorage[item] = String(value);
+                }
+            },
+            removeItem: {
+                value: function(item) {
+                    delete localStorage[item];
+                }
+            },
+            clear: {
+                value: function() {
+                    for(var obj in localStorage) {
+                        delete localStorage[obj];
+                    }
+                }
+            },
+            key: {
+                value: function(i) {
+                    return Object.keys(localStorage)[i];
+                }
+            },
+            length: {
+                value: function() {
+                    return Object.keys(localStorage).length;
+                }
+            }
+        });
 
-    def __setattr__(self, key, value):
-        object.__getattribute__(self, 'values')[key] = str(value)
+        (function() {
+            native function _save_key();
+            native function _delete_key();
+            Object.observe(localStorage, function(changes) {
+                changes.forEach(function(change) {
+                    var key = change.name;
+                    if(change == 'add' || change == 'update') {
+                        if(key in localStorage) {
+                            if(typeof(value) != "string") {
+                                localStorage[key] = String(localStorage[key]);
+                            }
+                            _save_key(key, localStorage[key]);
+                        }
+                    } else if(change == 'delete') {
+                        _delete_key(key);
+                    }
+                });
+            });
+        })();
+        """, lambda f: getattr(self, 'js%s' % f))
+
+    def js_save_key(self, key, value):
         pass
 
-    def __delattr__(self, item):
-        try:
-            del object.__getattribute__(self, 'values')[item]
-        except KeyError:
-            pass
-
-    def __getattribute__(self, item):
-        if item in ("getItem", "setItem", "removeItem", "key", "clear", "__watchpoints__", "length"):
-            return object.__getattribute__(self, item)
-        try:
-            return object.__getattribute__(self, 'values')[item]
-        except KeyError:
-            return None
-
-    def __iter__(self):
-        for key in object.__getattribute__(self, 'values'):
-            yield key
-
-    def __len__(self):
-        return len(object.__getattribute__(self, 'values'))
-
-    def getItem(self, item):
-        return object.__getattribute__(self, 'values').get(item, None)
-
-    def setItem(self, key, value):
-        object.__getattribute__(self, 'values')[key] = str(value)
-
-    def removeItem(self, key):
-        try:
-            del object.__getattribute__(self, 'values')[key]
-        except KeyError:
-            pass
-
-    def clear(self):
-        object.__getattribute__(self, 'values').clear()
-
-    def key(self, index):
-        try:
-            return object.__getattribute__(self, 'values').keys()[index]
-        except IndexError:
-            return None
-
-    @property
-    def length(self):
-        return len(self)
+    def js_delete_key(self, key):
+        pass

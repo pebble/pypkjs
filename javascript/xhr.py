@@ -9,27 +9,49 @@ import events
 import typedarrays
 import array
 
-class ProgressEvent(events.Event):
-    def __init__(self, computable=False, loaded=0, total=0):
-        self._lengthComputable = computable
-        self._loaded = loaded
-        self._total = total
-        events.Event.__init__(self, "ProgressEvent")
+progress_event = v8.JSExtension("runtime/events/progress", """
+ProgressEvent = function(computable, loaded, total) {
+    Event.call(this);
+    computable = computable || false;
+    loaded = loaded || 0;
+    total = total || 0;
+    Object.defineProperties(this, {
+        lengthComputable: {
+            get: function() { return computable; },
+            enumerable: true,
+        },
+        loaded: {
+            get: function() { return loaded; },
+            enumerable: true,
+        },
+        total: {
+            get: function() { return total; },
+            enumerable: true,
+        },
+    });
+}
+ProgressEvent.prototype = Object.create(Event.prototype);
+ProgressEvent.prototype.constructor = ProgressEvent;
+""", dependencies=["runtime/event"])
 
-    @property
-    def lengthComputable(self):
-        return self._lengthComputable
+ProgressEvent = lambda runtime, *args: v8.JSObject.create(runtime.context.locals.ProgressEvent, args)
 
-    @property
-    def loaded(self):
-        return self._loaded
+xml_http_request = v8.JSExtension("runtime/xhr", """
+_init_xhr = function(runtime, session) {
+    this.XMLHttpRequest = function() {
+        native function _xhr();
+        var origin = new _xhr(runtime, session);
+        _make_proxies(this, origin, ['open', 'setRequestHeader', 'overrideMimeType', 'send', 'getResponseHeader',
+                                        'getAllResponseHeaders', 'abort']);
+        _make_properties(this, origin, ['readyState', 'response', 'responseText', 'responseType', 'status',
+                                        'statusText', 'timeout', 'onreadystatechange', 'ontimeout', 'onload',
+                                        'onloadstart', 'onloadend', 'onprogress', 'onerror', 'onabort']);
+    }
+}
+""", lambda f: XMLHttpRequest, dependencies=[progress_event.name])
 
-    @property
-    def total(self):
-        return self._total
 
-
-class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
+class XMLHttpRequest(events.EventSourceMixin):
     UNSENT = 0
     OPENED = 1
     HEADERS_RECEIVED = 2
@@ -115,14 +137,14 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
             else:
                 self.response = self.responseText
 
-            self.triggerEvent("load", ProgressEvent())
+            self.triggerEvent("load", ProgressEvent(self._runtime))
         except requests.exceptions.Timeout:
-            self.triggerEvent("timeout", ProgressEvent())
+            self.triggerEvent("timeout", ProgressEvent(self._runtime))
             self.readyState = self.DONE
         except requests.exceptions.RequestException:
             self.readyState = self.DONE
         finally:
-            self.triggerEvent("loadend", ProgressEvent())
+            self.triggerEvent("loadend", ProgressEvent(self._runtime))
             self.triggerEvent("readystatechange")
 
     def send(self, data=None):
@@ -142,6 +164,6 @@ class XMLHttpRequest(events.EventSourceMixin, v8.JSClass):
         pass
 
 
-def xhr_factory(runtime):
+def prepare_xhr(runtime):
     session = requests.Session()
-    return lambda: XMLHttpRequest(runtime, session)
+    return runtime.context.locals._init_xhr(runtime, session)
