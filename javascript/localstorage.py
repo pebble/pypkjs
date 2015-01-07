@@ -8,51 +8,32 @@ class LocalStorage(object):
         self.storage = {}
         self.extension = v8.JSExtension(runtime.ext_name("localstorage"), """
         (function() {
-            native function _get();
-            native function _set();
-            native function _has();
-            native function _delete();
-            native function _enumerate();
-            native function _keys();
-            native function _clear();
-            native function _getItem();
-            native function _setItem();
-            native function _removeItem();
-            native function _key();
+            native function _internal_storage();
 
-            var methodMappings = {
-                clear: function() { _clear(); },
-                getItem: function(key) { return _getItem(key); },
-                setItem: function(key, value) { return _setItem(key, value); },
-                removeItem: function(key) { return _removeItem(key); },
-                key: function(index) { return _key(index); },
-            }
+            var internal = new (function() {
+                _make_proxies(this, _internal_storage(), ['get', 'set', 'has', 'delete', 'keys', 'enumerate', 'clear',
+                                                            'getItem', 'setItem', 'removeItem', 'key']);
+                var realGet = this.get;
+                var self = this;
+                this.get = function(p, name) { return self[name] || realGet(p, name); };
+            })();
 
-            this.localStorage = Proxy.create({
-                get: function(p, name) { return methodMappings[name] || _get(name); },
-                set: function(p, name, value) { return _set(name, value) },
-                has: function(p, name) { return _has(name) },
-                delete: function(p, name) { return _delete(name) },
-                enumerate: function(p) { return _enumerate() },
-                keys: function(p, name) { return _keys(name) },
-            });
+            this.localStorage = Proxy.create(internal);
         })();
-        """, lambda f: getattr(self, 'proxy%s' % f))
+        """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
 
-    def proxy_get(self, name):
-        if hasattr(self, "instance_%s" % name):
-            return getattr(self, "instance_%s" % name)
+    def get(self, p, name):
         return self.storage.get(name, v8.JSNull())
 
-    def proxy_set(self, name, value):
+    def set(self, p, name, value):
         self.storage[str(name)] = str(value)
         #TODO: actually store this somewhere.
         return True
 
-    def proxy_has(self, name):
+    def has(self, p, name):
         return name in self.storage
 
-    def proxy_delete(self, name):
+    def delete(self, p, name):
         if name in self.storage:
             del self.storage[name]
             #TODO: actually store this somewhere.
@@ -60,25 +41,25 @@ class LocalStorage(object):
         else:
             return False
 
-    def proxy_keys(self):
+    def keys(self, p):
         return v8.JSArray(self.storage.keys())
 
-    def proxy_enumerate(self):
+    def enumerate(self):
         return v8.JSArray(self.storage.keys())
 
-    def proxy_clear(self):
+    def clear(self, *args):
         self.storage.clear()
 
-    def proxy_getItem(self, name):
+    def getItem(self, name, *args):
         return self.storage.get(name, v8.JSNull())
 
-    def proxy_setItem(self, name, value):
-        self.proxy_set(name, value)
+    def setItem(self, name, value, *args):
+        self.set(None, name, value)
 
-    def proxy_removeItem(self, name):
-        return self.proxy_delete(name)
+    def removeItem(self, name, *args):
+        return self.delete(None, name)
 
-    def proxy_key(self, index):
+    def key(self, index, *args):
         if len(self.storage) > index:
             return self.storage.keys()[index]
         else:
