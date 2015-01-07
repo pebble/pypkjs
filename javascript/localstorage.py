@@ -24,8 +24,8 @@ class LocalStorage(object):
                 clear: function() { _clear(); },
                 getItem: function(key) { return _getItem(key); },
                 setItem: function(key, value) { return _setItem(key, value); },
-                removeItem: function(key) { _removeItem(key); },
-                key: function(index) { _key(index); },
+                removeItem: function(key) { return _removeItem(key); },
+                key: function(index) { return _key(index); },
             }
 
             this.localStorage = Proxy.create({
