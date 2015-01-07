@@ -99,14 +99,14 @@ class XMLHttpRequest(events.EventSourceMixin):
 
     def setRequestHeader(self, header, value):
         if self.readyState != self.OPENED:
-            raise exceptions.JSRuntimeException(self.__runtime, "Request headers can only be set in the OPENED state.")
+            raise exceptions.JSRuntimeException("Request headers can only be set in the OPENED state.")
         if self.__sent:
-            raise exceptions.JSRuntimeException(self.__runtime, "Request headers cannot be set after sending a request.")
+            raise exceptions.JSRuntimeException("Request headers cannot be set after sending a request.")
         self.__request.headers[header] = value
 
     def overrideMimeType(self, mimetype):
         if self.readyState >= self.LOADING:
-            raise exceptions.JSRuntimeException(self.__runtime, "The mime type cannot be overridden after the request starts loading.")
+            raise exceptions.JSRuntimeException("The mime type cannot be overridden after the request starts loading.")
         self.__mime_override = mimetype
 
     def _do_request_error(self, exception, event):

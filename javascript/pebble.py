@@ -109,7 +109,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
 
     def _check_ready(self):
         if not self._is_ready:
-            raise JSRuntimeException(self._runtime, "Can't interact with the watch before the ready event is fired.")
+            raise JSRuntimeException("Can't interact with the watch before the ready event is fired.")
 
     def sendAppMessage(self, message, success=None, failure=None):
         self._check_ready()
@@ -121,7 +121,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             try:
                 to_send[int(k)] = v
             except ValueError:
-                raise JSRuntimeException(self._runtime, "Unknown message key '%s'" % k)
+                raise JSRuntimeException("Unknown message key '%s'" % k)
 
         tuples = []
         appmessage = AppMessage()
@@ -145,16 +145,16 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                         if 0 <= byte <= 255:
                             fmt.append('B')
                         else:
-                            raise JSRuntimeException(self._runtime, "Bytes must be between 0 and 255 inclusive.")
+                            raise JSRuntimeException("Bytes must be between 0 and 255 inclusive.")
                     elif isinstance(byte, str):  # This is intentionally not basestring; unicode won't work.
                         fmt.append('%ss' % len(byte))
                     else:
-                        raise JSRuntimeException(self._runtime, "Unexpected value in byte array.")
+                        raise JSRuntimeException("Unexpected value in byte array.")
                 v = struct.pack(''.join(fmt), *v)
             elif v is None:
                 continue
             else:
-                raise JSRuntimeException(self._runtime, "Invalid value data type for key %s: %s" % (k, type(v)))
+                raise JSRuntimeException("Invalid value data type for key %s: %s" % (k, type(v)))
             tuples.append(appmessage.build_tuple(k, t, v))
 
         d = appmessage.build_dict(tuples)

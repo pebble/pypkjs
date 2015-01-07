@@ -10,9 +10,9 @@ class LocalStorage(object):
         (function() {
             native function _internal();
 
-            var proxy = _make_proxies({}, _internal(), ['set', 'has', 'delete', 'keys', 'enumerate']);
+            var proxy = _make_proxies({}, _internal(), ['set', 'has', 'delete_', 'keys', 'enumerate']);
             var methods = _make_proxies({}, _internal(), ['clear', 'getItem', 'setItem', 'removeItem', 'key']);
-            proxy.get = function(p, name) { return methods[name] || _internal().get(p, name); }
+            proxy.get = function get(p, name) { return methods[name] || _internal().get(p, name); }
 
             this.localStorage = Proxy.create(proxy);
         })();
@@ -29,7 +29,7 @@ class LocalStorage(object):
     def has(self, p, name):
         return name in self.storage
 
-    def delete(self, p, name):
+    def delete_(self, p, name):
         if name in self.storage:
             del self.storage[name]
             #TODO: actually store this somewhere.

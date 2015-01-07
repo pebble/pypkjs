@@ -62,23 +62,27 @@ class EventSourceMixin(object):
             for listener in self._listeners.get(event_name, []):
                 try:
                     listener.call(self, event, *params)
+                except (v8.JSError, JSRuntimeException) as e:
+                    self._runtime.log_output(e.stackTrace)
                 except Exception as e:
-                    self._runtime.log_output(JSRuntimeException(self._runtime, e.message).stackTrace)
+                    self._runtime.log_output(e.message)
                     raise
                 finally:
                     if event._aborted:
                         break
             #TODO: Figure out if these come before or after addEventListener handlers.
             try:
-                dom_event = self.__getattribute__("on" + event_name)
+                dom_event = getattr(self, "on" + event_name)
             except AttributeError:
                 pass
             else:
                 try:
                     if dom_event is not None:
                         dom_event.call(self, event, *params)
+                except (v8.JSError, JSRuntimeException) as e:
+                    self._runtime.log_output(e.stackTrace)
                 except Exception as e:
-                    self._runtime.log_output(JSRuntimeException(self._runtime, e.message).stackTrace)
+                    self._runtime.log_output(e.message)
                     raise
 
         self._runtime.enqueue(go)
