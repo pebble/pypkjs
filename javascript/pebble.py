@@ -70,12 +70,12 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         try:
             tuple_count, = struct.unpack_from('<B', encoded_dict, 0)
             offset = 1
-            d = v8.JSClass()
+            d = self._runtime.context.eval("({})")  # This is kinda absurd.
             for i in xrange(tuple_count):
                 k, t, l = struct.unpack_from('<IBH', encoded_dict, offset)
                 offset += 7
                 if t == 0:  # BYTE_ARRAY
-                    v = list(struct.unpack_from('<%dB' % l, encoded_dict, offset))
+                    v = v8.JSArray(list(struct.unpack_from('<%dB' % l, encoded_dict, offset)))
                 elif t == 1:  # CSTRING
                     v, = struct.unpack_from('<%ds' % l, encoded_dict, offset)
                     try:
@@ -94,16 +94,16 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                     v, = struct.unpack_from('<%s' % widths[(t, l)], encoded_dict, offset)
                 else:
                     raise Exception("Received bad appmessage dict.")
+                d[str(k)] = v
                 if k in app_keys:
-                    k = app_keys[k]
-                d.__setattr__(str(k), v)
+                    d[str(app_keys[k])] = v
                 offset += l
         except:
             self._pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0x7F, tid))  # NACK
             raise
         else:
             self._pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0xFF, tid))  # ACK
-            e = events.Event("AppMessage")
+            e = events.Event(self._runtime, "AppMessage")
             e.payload = d
             self.triggerEvent("appmessage", e)
 
