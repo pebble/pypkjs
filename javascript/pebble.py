@@ -114,7 +114,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
     def sendAppMessage(self, message, success=None, failure=None):
         self._check_ready()
         to_send = {}
-        message = {k: message[k] for k in message.keys()}
+        message = {k: message[str(k)] for k in message.keys()}
         for k, v in message.iteritems():
             if k in self._app_keys:
                 k = self._app_keys[k]

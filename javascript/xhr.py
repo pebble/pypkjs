@@ -95,7 +95,7 @@ class XMLHttpRequest(events.EventSourceMixin):
             self.__request.auth = (user, password or "")
         self.__async = async
         self.readyState = self.OPENED
-        self.triggerEvent("readystatechange")
+        self._trigger_async_event("readystatechange")
 
     def setRequestHeader(self, header, value):
         if self.readyState != self.OPENED:
@@ -113,7 +113,7 @@ class XMLHttpRequest(events.EventSourceMixin):
         self.readyState = self.DONE
         if not self.__async:
             raise Exception(exception)
-        self.triggerEvent("readystatechange")
+        self._trigger_async_event("readystatechange")
 
     def _do_send(self):
         self.__sent = True
@@ -137,15 +137,29 @@ class XMLHttpRequest(events.EventSourceMixin):
             else:
                 self.response = self.responseText
 
-            self.triggerEvent("load", ProgressEvent(self._runtime))
+            self._trigger_async_event("load", ProgressEvent, (self._runtime,))
         except requests.exceptions.Timeout:
-            self.triggerEvent("timeout", ProgressEvent(self._runtime))
+            self._trigger_async_event("timeout", ProgressEvent, (self._runtime,))
             self.readyState = self.DONE
         except requests.exceptions.RequestException:
             self.readyState = self.DONE
         finally:
-            self.triggerEvent("loadend", ProgressEvent(self._runtime))
-            self.triggerEvent("readystatechange")
+            self._trigger_async_event("loadend", ProgressEvent, (self._runtime,))
+            self._trigger_async_event("readystatechange")
+
+    def triggerEvent(self, event_name, event=None, *params):
+        # We aren't supposed to generate events if we're making a synchronous request.
+        # It also seems to crash V8.
+        if not self.__async:
+            return
+        super(XMLHttpRequest, self).triggerEvent(event_name, event, *params)
+
+    def _trigger_async_event(self, event_name, event=None, event_params=(), params=()):
+        if self.__async:
+            if event is not None:
+                self.triggerEvent(event_name, event(*event_params), *params)
+            else:
+                self.triggerEvent(event_name, *params)
 
     def send(self, data=None):
         if data is not None:

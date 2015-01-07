@@ -18,7 +18,7 @@ from javascript.navigator import Navigator
 make_proxy_extension = v8.JSExtension("runtime/internal/proxy", """
     function _make_proxies(proxy, origin, names) {
         names.forEach(function(name) {
-            proxy[name] = function() { origin[name].apply(origin, arguments); };
+            proxy[name] = function() { return origin[name].apply(origin, arguments); };
         });
     }
     function _make_properties(proxy, origin, names) {
