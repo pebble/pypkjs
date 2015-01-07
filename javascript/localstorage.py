@@ -61,10 +61,10 @@ class LocalStorage(object):
             return False
 
     def proxy_keys(self):
-        return self.storage.keys()
+        return v8.JSArray(self.storage.keys())
 
     def proxy_enumerate(self):
-        return self.storage.keys()
+        return v8.JSArray(self.storage.keys())
 
     def proxy_clear(self):
         self.storage.clear()
