@@ -139,10 +139,8 @@ class WebsocketRunner(Runner):
                 f.write(message)
                 f.flush()
                 try:
+                    self.load_pbws([f.name])
                     self.pebble.pebble.install_app_pebble_protocol(f.name)
-                    self.pebble.register_endpoints()
-                    # Install it for us, too.
-                    self.load_pbws([f.name], start=True)
 
                 except:
                     try:
