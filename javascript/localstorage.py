@@ -8,17 +8,13 @@ class LocalStorage(object):
         self.storage = {}
         self.extension = v8.JSExtension(runtime.ext_name("localstorage"), """
         (function() {
-            native function _internal_storage();
+            native function _internal();
 
-            var internal = new (function() {
-                _make_proxies(this, _internal_storage(), ['get', 'set', 'has', 'delete', 'keys', 'enumerate', 'clear',
-                                                            'getItem', 'setItem', 'removeItem', 'key']);
-                var realGet = this.get;
-                var self = this;
-                this.get = function(p, name) { return self[name] || realGet(p, name); };
-            })();
+            var proxy = _make_proxies({}, _internal(), ['set', 'has', 'delete', 'keys', 'enumerate']);
+            var methods = _make_proxies({}, _internal(), ['clear', 'getItem', 'setItem', 'removeItem', 'key']);
+            proxy.get = function(p, name) { return methods[name] || _internal().get(p, name); }
 
-            this.localStorage = Proxy.create(internal);
+            this.localStorage = Proxy.create(proxy);
         })();
         """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
 

@@ -20,6 +20,7 @@ make_proxy_extension = v8.JSExtension("runtime/internal/proxy", """
         names.forEach(function(name) {
             proxy[name] = function() { return origin[name].apply(origin, arguments); };
         });
+        return proxy;
     }
     function _make_properties(proxy, origin, names) {
         names.forEach(function(name) {
@@ -34,6 +35,7 @@ make_proxy_extension = v8.JSExtension("runtime/internal/proxy", """
                 }
             });
         });
+        return proxy;
     }
 """)
 
