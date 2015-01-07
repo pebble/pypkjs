@@ -151,6 +151,8 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                     else:
                         raise JSRuntimeException(self._runtime, "Unexpected value in byte array.")
                 v = struct.pack(''.join(fmt), *v)
+            elif v is None:
+                continue
             else:
                 raise JSRuntimeException(self._runtime, "Invalid value data type for key %s: %s" % (k, type(v)))
             tuples.append(appmessage.build_tuple(k, t, v))
