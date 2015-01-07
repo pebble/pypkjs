@@ -57,7 +57,10 @@ class WebsocketRunner(Runner):
         def echoing_write(message):
             real_write(message)
             if self.ws is not None:
-                self.ws.send(bytearray('\x01' + message))
+                try:
+                    self.ws.send(bytearray('\x01' + message))
+                except WebSocketError:
+                    pass
         self.pebble.pebble._ser.write = echoing_write
 
         real_read = self.pebble.pebble._recv_message
