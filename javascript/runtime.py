@@ -67,7 +67,7 @@ class JSRuntime(object):
                 self.log_output(e.message)
                 raise
             else:
-                self.group.spawn(self.pjs.pebble._connect)
+                self.enqueue(self.pjs.pebble._connect)
                 self.event_loop()
             self.group.kill(timeout=2)
             print "JS finished"
@@ -90,4 +90,11 @@ class JSRuntime(object):
 
     def ext_name(self, name):
         return "instance/%d/runtime/%s" % (self.runtime_id, name)
+
+    def is_configurable(self):
+        return 'configurable' in self.manifest['capabilities']
+
+    def do_config(self):
+        self.enqueue(self.pjs.pebble._configure)
+
 JSRuntime.runtimeCount = 0

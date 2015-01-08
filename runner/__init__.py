@@ -5,6 +5,8 @@ import zipfile
 from uuid import UUID
 import gevent
 import json
+import urlparse
+import urllib
 
 import javascript
 import javascript.runtime
@@ -56,6 +58,7 @@ class Runner(object):
         self.running_uuid = pbw.uuid
         self.js = javascript.runtime.JSRuntime(self.pebble, pbw.manifest)
         self.js.log_output = lambda m: self.log_output(m)
+        self.js.open_config_page = lambda url, callback: self.open_config_page(url, callback)
         gevent.spawn(self.js.run, pbw.src)
 
 
@@ -71,5 +74,24 @@ class Runner(object):
         while self.pebble.pebble._alive:
             gevent.sleep(0.5)
 
+    def do_config(self):
+        if self.js is None:
+            self.log_output("Can't show configuration.")
+        self.js.do_config()
+
     def log_output(self, message):
         raise NotImplemented
+
+    def open_config_page(self, url, callback):
+        raise NotImplemented
+
+    @staticmethod
+    def url_append_params(url, params):
+        parsed = urlparse.urlparse(url, "http")
+        query = parsed.query
+        if parsed.query != '':
+            query += '&'
+
+        encoded_params = urllib.urlencode(params)
+        query += encoded_params
+        return urlparse.urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, query, parsed.fragment))

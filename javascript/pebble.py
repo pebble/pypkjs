@@ -19,7 +19,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             native function _internal_pebble();
             _make_proxies(this, _internal_pebble(),
                 ['sendAppMessage', 'showSimpleNotificationOnPebble', 'getAccountToken', 'getWatchToken',
-                'addEventListener', 'removeEventListener']);
+                'addEventListener', 'removeEventListener', 'openURL']);
         })();
         """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
         self._pebble = pebble.pebble
@@ -37,6 +37,9 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         self._pebble.register_endpoint("APPLICATION_MESSAGE", self._handle_appmessage)
         self._is_ready = True
         self.triggerEvent("ready")
+
+    def _configure(self):
+        self.triggerEvent("showConfiguration")
 
     def _handle_appmessage(self, endpoint, data):
         command, tid = struct.unpack_from("BB", data, 0)
@@ -177,3 +180,13 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
     def getWatchToken(self):
         self._check_ready()
         return "0123456789abcdef0123456789abcdef"
+
+    def openURL(self, url):
+        self._runtime.open_config_page(url, self._handle_config_response)
+
+    def _handle_config_response(self, response):
+        def go():
+            e = events.Event(self._runtime, "WebviewClosed")
+            e.response = response
+            self.triggerEvent("webviewclosed", e)
+        self._runtime.enqueue(go)
