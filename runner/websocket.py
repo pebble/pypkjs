@@ -55,7 +55,7 @@ class WebsocketRunner(Runner):
     def open_config_page(self, url, callback):
         if self.ws:
             try:
-                self.ws.send(bytearray(struct.pack('<BBI%ds' % len(url), 0x0a, 0x01, len(url), url)))
+                self.ws.send(bytearray(struct.pack('>BBI%ds' % len(url), 0x0a, 0x01, len(url), url)))
             except WebSocketError:
                 pass
             else:
@@ -170,6 +170,7 @@ class WebsocketRunner(Runner):
     def do_config_ws(self, message):
         if message[0] == 0x01:
             self.do_config()
+            return
         if self.config_callback is None:
             return
         if message[0] == 0x02:
