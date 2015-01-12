@@ -38,6 +38,9 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         self._is_ready = True
         self.triggerEvent("ready")
 
+    def _shutdown(self):
+        self._pebble.register_endpoint("APPLICATION_MESSAGE", lambda a, b: False)  # ffs libpebble.
+
     def _configure(self):
         self.triggerEvent("showConfiguration")
 

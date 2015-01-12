@@ -29,3 +29,6 @@ class PebbleKitJS(object):
 
     def do_post_setup(self):
         prepare_xhr(self.runtime)
+
+    def shutdown(self):
+        self.pebble._shutdown()

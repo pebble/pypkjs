@@ -69,6 +69,7 @@ class JSRuntime(object):
             else:
                 self.enqueue(self.pjs.pebble._connect)
                 self.event_loop()
+            self.pjs.shutdown()
             self.group.kill(timeout=2)
             print "JS finished"
 
