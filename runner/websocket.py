@@ -174,8 +174,8 @@ class WebsocketRunner(Runner):
         if self.config_callback is None:
             return
         if message[0] == 0x02:
-            length, = struct.unpack_from("I", message, 1)
-            result, = struct.unpack_from("%ds" % length, message, 5)
+            length, = struct.unpack_from(">I", message, 1)
+            result, = struct.unpack_from(">%ds" % length, message, 5)
             self.config_callback(result)
             self.config_callback = None
         elif message[0] == 0x03:
