@@ -26,6 +26,7 @@ class WebsocketRunner(Runner):
         self.server = None
         self.ws = None
         self.ssl_root = ssl_root
+        self.config_callback = None
         super(WebsocketRunner, self).__init__(qemu, pbws)
 
     def run(self):
@@ -50,6 +51,15 @@ class WebsocketRunner(Runner):
                 self.ws.send(bytearray('\x02' + message))
         except WebSocketError:
             pass
+
+    def open_config_page(self, url, callback):
+        if self.ws:
+            try:
+                self.ws.send(bytearray(struct.pack('>BBI%ds' % len(url), 0x0a, 0x01, len(url), url)))
+            except WebSocketError:
+                pass
+            else:
+                self.config_callback = callback
 
     # evil monkeypatch
     def patch_pebble(self):
@@ -105,6 +115,7 @@ class WebsocketRunner(Runner):
             0x04: self.do_install,
             0x06: self.do_phone_info,
             0x09: self.do_auth,
+            0x0a: self.do_config_ws,
         }
 
         if opcode in opcode_handlers:
@@ -154,3 +165,22 @@ class WebsocketRunner(Runner):
                     except WebSocketError:
                         pass
         gevent.spawn(go_do_install)
+
+    @must_auth
+    def do_config_ws(self, message):
+        if message[0] == 0x01:
+            self.do_config()
+            return
+        if self.config_callback is None:
+            return
+        if message[0] == 0x02:
+            length, = struct.unpack_from(">I", message, 1)
+            result, = struct.unpack_from(">%ds" % length, message, 5)
+            self.config_callback(result)
+            self.config_callback = None
+        elif message[0] == 0x03:
+            self.config_callback("")
+            self.config_callback = None
+        else:
+            print "what?"
+
