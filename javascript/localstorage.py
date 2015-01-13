@@ -53,7 +53,7 @@ class LocalStorage(object):
         self.set(None, name, value)
 
     def removeItem(self, name, *args):
-        return self.delete(None, name)
+        return self.delete_(None, name)
 
     def key(self, index, *args):
         if len(self.storage) > index:
