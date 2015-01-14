@@ -77,6 +77,7 @@ class Runner(object):
     def do_config(self):
         if self.js is None:
             self.log_output("Can't show configuration.")
+            return
         self.js.do_config()
 
     def log_output(self, message):
