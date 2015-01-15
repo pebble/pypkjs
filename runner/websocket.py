@@ -116,6 +116,7 @@ class WebsocketRunner(Runner):
             0x06: self.do_phone_info,
             0x09: self.do_auth,
             0x0a: self.do_config_ws,
+            0x0b: self.do_qemu_command,
         }
 
         if opcode in opcode_handlers:
@@ -184,3 +185,7 @@ class WebsocketRunner(Runner):
         else:
             print "what?"
 
+    @must_auth
+    def do_qemu_command(self, message):
+        protocol = message[0]
+        self.pebble.pebble._ser.write(str(message[1:]), protocol=protocol)
