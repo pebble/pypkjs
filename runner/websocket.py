@@ -64,13 +64,14 @@ class WebsocketRunner(Runner):
     # evil monkeypatch
     def patch_pebble(self):
         real_write = self.pebble.pebble._ser.write
-        def echoing_write(message):
+        def echoing_write(message, **kwargs):
             real_write(message)
-            if self.ws is not None:
-                try:
-                    self.ws.send(bytearray('\x01' + message))
-                except WebSocketError:
-                    pass
+            if 'protocol' not in kwargs:
+                if self.ws is not None:
+                    try:
+                        self.ws.send(bytearray('\x01' + message))
+                    except WebSocketError:
+                        pass
         self.pebble.pebble._ser.write = echoing_write
 
         real_read = self.pebble.pebble._recv_message
