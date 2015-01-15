@@ -2,10 +2,11 @@ __author__ = 'katharine'
 
 import PyV8 as v8
 
+_storage_cache = {}
 
 class LocalStorage(object):
     def __init__(self, runtime):
-        self.storage = {}
+        self.storage = _storage_cache.setdefault(runtime.manifest['uuid'], {})
         self.extension = v8.JSExtension(runtime.ext_name("localstorage"), """
         (function() {
             native function _internal();
