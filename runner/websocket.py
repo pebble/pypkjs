@@ -65,7 +65,7 @@ class WebsocketRunner(Runner):
     def patch_pebble(self):
         real_write = self.pebble.pebble._ser.write
         def echoing_write(message, **kwargs):
-            real_write(message)
+            real_write(message, **kwargs)
             if 'protocol' not in kwargs:
                 if self.ws is not None:
                     try:
