@@ -16,6 +16,7 @@ class PebbleManager(object):
     def connect(self):
         self.register_endpoints()
         self.pebble.connect_via_qemu(self.qemu)
+        self.pebble.emu_bluetooth_connection(True)
         self.request_running_app()
         print 'connected to %s' % self.qemu
 
