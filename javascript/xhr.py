@@ -6,8 +6,6 @@ import requests
 import requests.exceptions
 import exceptions
 import events
-import typedarrays
-import array
 
 progress_event = v8.JSExtension("runtime/events/progress", """
 ProgressEvent = function(computable, loaded, total) {
@@ -132,8 +130,7 @@ class XMLHttpRequest(events.EventSourceMixin):
             if self.responseType == "json":
                 self.response = resp.json()
             elif self.responseType == "arraybuffer":
-                self.response = typedarrays.ArrayBuffer(len(resp.content))
-                self.response._array = array.array('B', resp.content)
+                self.response = v8.JSObject.create(self.__runtime.context.locals.Uint8Array, (v8.JSArray(list(bytearray(resp.content))),))
             else:
                 self.response = self.responseText
 

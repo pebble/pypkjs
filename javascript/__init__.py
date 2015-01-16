@@ -8,7 +8,6 @@ from localstorage import LocalStorage
 from pebble import Pebble
 from xhr import prepare_xhr
 from navigator import Navigator
-import typedarrays
 
 class PebbleKitJS(object):
     def __init__(self, runtime, pebble):
