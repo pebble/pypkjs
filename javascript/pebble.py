@@ -142,7 +142,12 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                 v = struct.pack('<i', v)
             elif isinstance(v, float):  # thanks, javascript
                 t = "INT"
-                v = struct.pack('<i', int(round(v)))
+                try:
+                    intv = int(round(v))
+                except ValueError:
+                    self._runtime.log_output("WARNING: illegal float value %s for appmessage key %s" % (v, k))
+                    intv = 0
+                v = struct.pack('<i', intv)
             elif isinstance(v, collections.Sequence):
                 t = "BYTE_ARRAY"
                 fmt = ['<']
