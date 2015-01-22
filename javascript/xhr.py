@@ -145,18 +145,18 @@ class XMLHttpRequest(events.EventSourceMixin):
             self._trigger_async_event("readystatechange")
 
     def triggerEvent(self, event_name, event=None, *params):
-        # We aren't supposed to generate events if we're making a synchronous request.
-        # It also seems to crash V8.
-        if not self.__async:
-            return
         super(XMLHttpRequest, self).triggerEvent(event_name, event, *params)
 
     def _trigger_async_event(self, event_name, event=None, event_params=(), params=()):
-        if self.__async:
+        def go():
             if event is not None:
                 self.triggerEvent(event_name, event(*event_params), *params)
             else:
                 self.triggerEvent(event_name, *params)
+        if self.__async:
+            go()
+        else:
+            self._runtime.enqueue(go)
 
     def send(self, data=None):
         if data is not None:
