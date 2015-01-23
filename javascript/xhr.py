@@ -40,7 +40,7 @@ _init_xhr = function(runtime, session) {
         native function _xhr();
         var origin = new _xhr(runtime, session);
         _make_proxies(this, origin, ['open', 'setRequestHeader', 'overrideMimeType', 'send', 'getResponseHeader',
-                                        'getAllResponseHeaders', 'abort']);
+                                        'getAllResponseHeaders', 'abort', 'addEventListener', 'removeEventListener']);
         _make_properties(this, origin, ['readyState', 'response', 'responseText', 'responseType', 'status',
                                         'statusText', 'timeout', 'onreadystatechange', 'ontimeout', 'onload',
                                         'onloadstart', 'onloadend', 'onprogress', 'onerror', 'onabort']);
