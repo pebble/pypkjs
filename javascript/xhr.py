@@ -156,7 +156,7 @@ class XMLHttpRequest(events.EventSourceMixin):
         if self.__async:
             go()
         else:
-            self._runtime.enqueue(go)
+            self.__runtime.enqueue(go)
 
     def send(self, data=None):
         if data is not None:
