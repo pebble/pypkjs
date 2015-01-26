@@ -12,10 +12,26 @@ from runner import Runner
 
 
 def must_auth(f):
-    def g(self, *args, **kwargs):
-        if self.authed or not self.requires_auth:
-            f(self, *args, **kwargs)
+    def g(self, ws, *args, **kwargs):
+        if not self.requires_auth or ws.authed:
+            f(self, ws, *args, **kwargs)
     return g
+
+
+class Websocket(object):
+    def __init__(self, ws):
+        self.ws = ws
+        self.authed = False
+
+    def send(self, message):
+        self.ws.send(message)
+
+    def receive(self):
+        return self.ws.receive()
+
+    def close(self):
+        self.ws.close()
+
 
 class WebsocketRunner(Runner):
     def __init__(self, qemu, pbws, port, token=None, ssl_root=None):
@@ -24,7 +40,7 @@ class WebsocketRunner(Runner):
         self.requires_auth = (token is not None)
         self.authed = not self.requires_auth
         self.server = None
-        self.ws = None
+        self.websockets = []
         self.ssl_root = ssl_root
         self.config_callback = None
         super(WebsocketRunner, self).__init__(qemu, pbws)
@@ -46,20 +62,11 @@ class WebsocketRunner(Runner):
         self.pebble.disconnect()
 
     def log_output(self, message):
-        try:
-            if self.ws is not None:
-                self.ws.send(bytearray('\x02' + message))
-        except WebSocketError:
-            pass
+        self.broadcast(bytearray('\x02' + message))
 
     def open_config_page(self, url, callback):
-        if self.ws:
-            try:
-                self.ws.send(bytearray(struct.pack('>BBI%ds' % len(url), 0x0a, 0x01, len(url), url)))
-            except WebSocketError:
-                pass
-            else:
-                self.config_callback = callback
+        self.broadcast(bytearray(struct.pack('>BBI%ds' % len(url), 0x0a, 0x01, len(url), url)))
+        self.config_callback = callback
 
     # evil monkeypatch
     def patch_pebble(self):
@@ -67,11 +74,7 @@ class WebsocketRunner(Runner):
         def echoing_write(message, **kwargs):
             real_write(message, **kwargs)
             if 'protocol' not in kwargs:
-                if self.ws is not None:
-                    try:
-                        self.ws.send(bytearray('\x01' + message))
-                    except WebSocketError:
-                        pass
+                self.broadcast(bytearray('\x01' + message))
         self.pebble.pebble._ser.write = echoing_write
 
         real_read = self.pebble.pebble._recv_message
@@ -79,33 +82,41 @@ class WebsocketRunner(Runner):
             source, endpoint, resp = real_read()
             if resp is not None:
                 real_message = struct.pack('>HH', len(resp), endpoint) + resp
-                if self.ws is not None and (self.authed or not self.requires_auth):
-                    try:
-                        self.ws.send(bytearray('\x00' + real_message))
-                    except WebSocketError:
-                        pass
+                self.broadcast(bytearray('\x00' + real_message))
             return source, endpoint, resp
         self.pebble.pebble._recv_message = echoing_read
 
     def handle_ws(self, environ, start_response):
         if environ['PATH_INFO'] == '/':
-            self.ws = environ['wsgi.websocket']
-            self.on_open()
+            ws = Websocket(environ['wsgi.websocket'])
+            self.websockets.append(ws)
+            self.on_open(ws)
             while True:
                 try:
-                    self.on_message(self.ws.receive())
+                    self.on_message(ws, ws.receive())
                 except WebSocketError:
                     break
-            self.on_close()
+            self.on_close(ws)
 
-    def on_open(self, *args, **kwargs):
-        self.authed = not self.requires_auth
+    def on_open(self, ws, *args, **kwargs):
+        ws.authed = not self.requires_auth
 
-    def on_close(self):
-        pass
+    def on_close(self, ws):
+        self.websockets.remove(ws)
+
+    def broadcast(self, message):
+        to_remove = []
+        for i, ws in enumerate(self.websockets):
+            if ws.authed:
+                try:
+                    ws.send(message)
+                except (WebSocketError, ssl.SSLError):
+                    to_remove.append(i)
+        for i in reversed(to_remove):
+            del self.websockets[i]
 
     # https://pebbletechnology.atlassian.net/wiki/pages/viewpage.action?pageId=491742
-    def on_message(self, message):
+    def on_message(self, ws, message):
         if not isinstance(message, bytearray):
             print "not a bytearray"
             print message
@@ -121,32 +132,31 @@ class WebsocketRunner(Runner):
         }
 
         if opcode in opcode_handlers:
-            opcode_handlers[opcode](message[1:])
+            opcode_handlers[opcode](ws, message[1:])
 
     @must_auth
-    def do_phone_info(self, message):
+    def do_phone_info(self, ws, message):
         try:
-            self.ws.send(bytearray("\x06pypkjs,0.0.0,qemu"))
+            ws.send(bytearray("\x06pypkjs,0.0.0,qemu"))
         except WebSocketError:
             pass
 
-    def do_auth(self, message):
+    def do_auth(self, ws, message):
         length = message[0]
         token, = struct.unpack_from('<%ds' % length, message, 1)
-        print token, self.token
         if token == self.token:
-            self.authed = True
-            self.ws.send(bytearray([0x09, 0x00]))  # token okay
-            self.ws.send(bytearray([0x08, 0xff]))  # send "connected" response immediately; we're always connected.
+            ws.authed = True
+            ws.send(bytearray([0x09, 0x00]))  # token okay
+            ws.send(bytearray([0x08, 0xff]))  # send "connected" response immediately; we're always connected.
         else:
-            self.ws.send(bytearray([0x09, 0x01]))  # bad token
+            ws.send(bytearray([0x09, 0x01]))  # bad token
 
     @must_auth
-    def do_relay(self, message):
+    def do_relay(self, ws, message):
         self.pebble.pebble._ser.write(str(message))
 
     @must_auth
-    def do_install(self, message):
+    def do_install(self, ws, message):
         def go_do_install():
             with tempfile.NamedTemporaryFile(delete=False) as f:
                 f.write(message)
@@ -157,19 +167,19 @@ class WebsocketRunner(Runner):
 
                 except:
                     try:
-                        self.ws.send(bytearray([0x05, 0x00, 0x00, 0x00, 0x01]))
+                        ws.send(bytearray([0x05, 0x00, 0x00, 0x00, 0x01]))
                     except WebSocketError:
                         pass
                     raise
                 else:
                     try:
-                        self.ws.send(bytearray([0x05, 0x00, 0x00, 0x00, 0x00]))
+                        ws.send(bytearray([0x05, 0x00, 0x00, 0x00, 0x00]))
                     except WebSocketError:
                         pass
         gevent.spawn(go_do_install)
 
     @must_auth
-    def do_config_ws(self, message):
+    def do_config_ws(self, ws, message):
         if message[0] == 0x01:
             self.do_config()
             return
@@ -187,6 +197,6 @@ class WebsocketRunner(Runner):
             print "what?"
 
     @must_auth
-    def do_qemu_command(self, message):
+    def do_qemu_command(self, ws, message):
         protocol = message[0]
         self.pebble.pebble._ser.write(str(message[1:]), protocol=protocol)
