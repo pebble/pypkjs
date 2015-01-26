@@ -15,7 +15,7 @@ Set up a virtualenv and install everything
 
     virtualenv .env
     source .env/bin/activate
-    pip install -r requirements
+    pip install -r requirements.txt
 
 Running
 -------
