@@ -22,24 +22,25 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                 'addEventListener', 'removeEventListener', 'openURL']);
         })();
         """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
-        self._pebble = pebble.pebble
-        self._tid = 0
-        self._uuid = UUID(runtime.manifest['uuid'])
-        self._app_keys = runtime.manifest['appKeys']
-        self._pending_acks = {}
-        self._is_ready = False
+        self.pebble = pebble.pebble
+        self.runtime = runtime
+        self.tid = 0
+        self.uuid = UUID(runtime.manifest['uuid'])
+        self.app_keys = runtime.manifest['appKeys']
+        self.pending_acks = {}
+        self.is_ready = False
         super(Pebble, self).__init__(runtime)
 
     def _connect(self):
         self._ready()
 
     def _ready(self):
-        self._pebble.register_endpoint("APPLICATION_MESSAGE", self._handle_appmessage)
-        self._is_ready = True
+        self.pebble.register_endpoint("APPLICATION_MESSAGE", self._handle_appmessage)
+        self.is_ready = True
         self.triggerEvent("ready")
 
     def _shutdown(self):
-        self._pebble.register_endpoint("APPLICATION_MESSAGE", lambda a, b: False)  # ffs libpebble.
+        self.pebble.register_endpoint("APPLICATION_MESSAGE", lambda a, b: False)  # ffs libpebble.
 
     def _configure(self):
         self.triggerEvent("showConfiguration")
@@ -54,29 +55,29 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
 
     def _handle_ack(self, command, tid):
         try:
-            success, failure = self._pending_acks[tid]
+            success, failure = self.pending_acks[tid]
         except KeyError:
             return
         callback_param = {"data": {"transactionId": tid}}
         if command == 0x7f:  # NACK
             callback_param['data']['error'] = 'Something went wrong.'
             if callable(failure):
-                self._runtime.enqueue(failure, callback_param)
+                self.runtime.enqueue(failure, callback_param)
         elif command == 0xff:  # ACK
             if callable(success):
-                self._runtime.enqueue(success, callback_param)
-        del self._pending_acks[tid]
+                self.runtime.enqueue(success, callback_param)
+        del self.pending_acks[tid]
 
     def _handle_message(self, tid, uuid, encoded_dict):
-        if uuid != self._uuid:
-            print "Discarded message for %s (expected %s)" % (uuid, self._uuid)
-            self._pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0x7F, tid))  # ACK
+        if uuid != self.uuid:
+            print "Discarded message for %s (expected %s)" % (uuid, self.uuid)
+            self.pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0x7F, tid))  # ACK
             return
-        app_keys = dict(zip(self._app_keys.values(), self._app_keys.keys()))
+        app_keys = dict(zip(self.app_keys.values(), self.app_keys.keys()))
         try:
             tuple_count, = struct.unpack_from('<B', encoded_dict, 0)
             offset = 1
-            d = self._runtime.context.eval("({})")  # This is kinda absurd.
+            d = self.runtime.context.eval("({})")  # This is kinda absurd.
             for i in xrange(tuple_count):
                 k, t, l = struct.unpack_from('<IBH', encoded_dict, offset)
                 offset += 7
@@ -105,16 +106,16 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                     d[str(app_keys[k])] = v
                 offset += l
         except:
-            self._pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0x7F, tid))  # NACK
+            self.pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0x7F, tid))  # NACK
             raise
         else:
-            self._pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0xFF, tid))  # ACK
-            e = events.Event(self._runtime, "AppMessage")
+            self.pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0xFF, tid))  # ACK
+            e = events.Event(self.runtime, "AppMessage")
             e.payload = d
             self.triggerEvent("appmessage", e)
 
     def _check_ready(self):
-        if not self._is_ready:
+        if not self.is_ready:
             raise JSRuntimeException("Can't interact with the watch before the ready event is fired.")
 
     def sendAppMessage(self, message, success=None, failure=None):
@@ -122,8 +123,8 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         to_send = {}
         message = {k: message[str(k)] for k in message.keys()}
         for k, v in message.iteritems():
-            if k in self._app_keys:
-                k = self._app_keys[k]
+            if k in self.app_keys:
+                k = self.app_keys[k]
             try:
                 to_send[int(k)] = v
             except ValueError:
@@ -145,7 +146,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                 try:
                     intv = int(round(v))
                 except ValueError:
-                    self._runtime.log_output("WARNING: illegal float value %s for appmessage key %s" % (v, k))
+                    self.runtime.log_output("WARNING: illegal float value %s for appmessage key %s" % (v, k))
                     intv = 0
                 v = struct.pack('<i', intv)
             elif isinstance(v, collections.Sequence):
@@ -169,14 +170,14 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             tuples.append(appmessage.build_tuple(k, t, v))
 
         d = appmessage.build_dict(tuples)
-        message = appmessage.build_message(d, "PUSH", self._uuid.bytes, struct.pack('B', self._tid))
-        self._pending_acks[self._tid] = (success, failure)
-        self._tid = (self._tid + 1) % 256
-        self._pebble._send_message("APPLICATION_MESSAGE", message)
+        message = appmessage.build_message(d, "PUSH", self.uuid.bytes, struct.pack('B', self.tid))
+        self.pending_acks[self.tid] = (success, failure)
+        self.tid = (self.tid + 1) % 256
+        self.pebble._send_message("APPLICATION_MESSAGE", message)
 
     def showSimpleNotificationOnPebble(self, title, message):
         self._check_ready()
-        self._pebble.notification_sms(title, message)
+        self.pebble.notification_sms(title, message)
 
     def showNotificationOnPebble(self, opts):
         pass
@@ -190,11 +191,11 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         return "0123456789abcdef0123456789abcdef"
 
     def openURL(self, url):
-        self._runtime.open_config_page(url, self._handle_config_response)
+        self.runtime.open_config_page(url, self._handle_config_response)
 
     def _handle_config_response(self, response):
         def go():
-            e = events.Event(self._runtime, "WebviewClosed")
+            e = events.Event(self.runtime, "WebviewClosed")
             e.response = response
             self.triggerEvent("webviewclosed", e)
-        self._runtime.enqueue(go)
+        self.runtime.enqueue(go)

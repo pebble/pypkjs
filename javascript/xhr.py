@@ -77,51 +77,51 @@ class XMLHttpRequest(events.EventSourceMixin):
         self.onabort = None
 
         # internal
-        self.__request = None
-        self.__async = False
-        self.__mime_override = None
-        self.__runtime = runtime
-        self.__session = session
-        self.__thread = None
-        self.__sent = False
+        self._request = None
+        self._async = False
+        self._mime_override = None
+        self._runtime = runtime
+        self._session = session
+        self._thread = None
+        self._sent = False
 
         super(XMLHttpRequest, self).__init__(runtime)
 
     def open(self, method, url, async=True, user=None, password=None):
-        self.__request = requests.Request(method, url)
+        self._request = requests.Request(method, url)
         if user is not None:
-            self.__request.auth = (user, password or "")
-        self.__async = async
+            self._request.auth = (user, password or "")
+        self._async = async
         self.readyState = self.OPENED
         self._trigger_async_event("readystatechange")
 
     def setRequestHeader(self, header, value):
         if self.readyState != self.OPENED:
             raise exceptions.JSRuntimeException("Request headers can only be set in the OPENED state.")
-        if self.__sent:
+        if self._sent:
             raise exceptions.JSRuntimeException("Request headers cannot be set after sending a request.")
-        self.__request.headers[header] = value
+        self._request.headers[header] = value
 
     def overrideMimeType(self, mimetype):
         if self.readyState >= self.LOADING:
             raise exceptions.JSRuntimeException("The mime type cannot be overridden after the request starts loading.")
-        self.__mime_override = mimetype
+        self._mime_override = mimetype
 
     def _do_request_error(self, exception, event):
         self.readyState = self.DONE
-        if not self.__async:
+        if not self._async:
             raise Exception(exception)
         self._trigger_async_event("readystatechange")
 
     def _do_send(self):
-        self.__sent = True
-        req = self.__session.prepare_request(self.__request)
+        self._sent = True
+        req = self._session.prepare_request(self._request)
         try:
             if self.timeout:
                 timeout = self.timeout / 1000.0
             else:
                 timeout = None
-            resp = self.__session.send(req, timeout=timeout, verify=True)
+            resp = self._session.send(req, timeout=timeout, verify=True)
             self.readyState = self.DONE
             self.status = resp.status_code
             self.statusText = resp.reason
@@ -130,7 +130,7 @@ class XMLHttpRequest(events.EventSourceMixin):
             if self.responseType == "json":
                 self.response = resp.json()
             elif self.responseType == "arraybuffer":
-                self.response = v8.JSObject.create(self.__runtime.context.locals.Uint8Array, (v8.JSArray(list(bytearray(resp.content))),))
+                self.response = v8.JSObject.create(self._runtime.context.locals.Uint8Array, (v8.JSArray(list(bytearray(resp.content))),))
             else:
                 self.response = self.responseText
 
@@ -144,26 +144,23 @@ class XMLHttpRequest(events.EventSourceMixin):
             self._trigger_async_event("loadend", ProgressEvent, (self._runtime,))
             self._trigger_async_event("readystatechange")
 
-    def triggerEvent(self, event_name, event=None, *params):
-        super(XMLHttpRequest, self).triggerEvent(event_name, event, *params)
-
     def _trigger_async_event(self, event_name, event=None, event_params=(), params=()):
         def go():
             if event is not None:
                 self.triggerEvent(event_name, event(*event_params), *params)
             else:
                 self.triggerEvent(event_name, *params)
-        if self.__async:
+        if self._async:
             go()
         else:
-            self.__runtime.enqueue(go)
+            self._runtime.enqueue(go)
 
     def send(self, data=None):
         if data is not None:
-            self.__request.data = str(data)
-        self.__thread = self.__runtime.group.spawn(self._do_send)
-        if not self.__async:
-            self.__thread.join()
+            self._request.data = str(data)
+        self._thread = self._runtime.group.spawn(self._do_send)
+        if not self._async:
+            self._thread.join()
 
     def getResponseHeader(self, header):
         pass

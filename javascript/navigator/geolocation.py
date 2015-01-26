@@ -28,7 +28,7 @@ Coordinates = lambda runtime, *args: v8.JSObject.create(runtime.context.locals.C
 
 class Geolocation(object):
     def __init__(self, runtime):
-        self.__runtime = runtime
+        self.runtime = runtime
 
     def _get_position(self, success, failure):
         try:
@@ -39,21 +39,21 @@ class Geolocation(object):
             record = gi.record_by_addr(ip)
             if record is None:
                 if callable(failure):
-                    self.__runtime.enqueue(failure)
+                    self.runtime.enqueue(failure)
         except (requests.RequestException, pygeoip.GeoIPError):
             if callable(failure):
-                self.__runtime.enqueue(failure)
+                self.runtime.enqueue(failure)
         else:
-            self.__runtime.enqueue(success, Position(self.__runtime, Coordinates(self.__runtime, record['longitude'], record['latitude'], 1000), int(time.time() * 1000)))
+            self.runtime.enqueue(success, Position(self.runtime, Coordinates(self.runtime, record['longitude'], record['latitude'], 1000), int(time.time() * 1000)))
 
     def _enabled(self):
         return True
 
     def getCurrentPosition(self, success, failure=None, options=None):
-        self.__runtime.group.spawn(self._get_position, success, failure)
+        self.runtime.group.spawn(self._get_position, success, failure)
 
     def watchPosition(self, success, failure=None, options=None):
-        self.__runtime.group.spawn(self._get_position, success, failure)
+        self.runtime.group.spawn(self._get_position, success, failure)
         return 42
 
     def clearWatch(self, thing):

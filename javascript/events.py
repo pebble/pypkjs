@@ -34,38 +34,39 @@ event = v8.JSExtension("runtime/event", """
 
 Event = lambda runtime, *args: v8.JSObject.create(runtime.context.locals.Event, args)
 
+
 class EventSourceMixin(object):
     def __init__(self, runtime):
-        self._listeners = {}
-        self._runtime = runtime
+        self.__listeners = {}
+        self.__runtime = runtime
         super(EventSourceMixin, self).__init__()
 
     def addEventListener(self, event, listener, capture=False):
-        self._listeners.setdefault(event, []).append(listener)
+        self.__listeners.setdefault(event, []).append(listener)
 
     def removeEventListener(self, event, listener=None):
-        if event not in self._listeners:
+        if event not in self.__listeners:
             return
         if listener is None:
-            del self._listeners[event]
+            del self.__listeners[event]
         else:
-            for i, listener_i in enumerate(self._listeners[event]):
+            for i, listener_i in enumerate(self.__listeners[event]):
                 if listener_i == listener:
                     del listener[i]
                     break
 
     def triggerEvent(self, event_name, event=None, *params):
         if event is None:
-            event = Event(self._runtime, event_name)
+            event = Event(self.__runtime, event_name)
 
         def go():
-            for listener in self._listeners.get(event_name, []):
+            for listener in self.__listeners.get(event_name, []):
                 try:
                     listener.call(self, event, *params)
                 except (v8.JSError, JSRuntimeException) as e:
-                    self._runtime.log_output(e.stackTrace)
+                    self.__runtime.log_output(e.stackTrace)
                 except Exception as e:
-                    self._runtime.log_output(e.message)
+                    self.__runtime.log_output(e.message)
                     raise
                 finally:
                     if event._aborted:
@@ -80,10 +81,10 @@ class EventSourceMixin(object):
                     if dom_event is not None:
                         dom_event.call(self, event, *params)
                 except (v8.JSError, JSRuntimeException) as e:
-                    self._runtime.log_output(e.stackTrace)
+                    self.__runtime.log_output(e.stackTrace)
                 except Exception as e:
-                    self._runtime.log_output(e.message)
+                    self.__runtime.log_output(e.message)
                     raise
 
-        self._runtime.enqueue(go)
+        self.__runtime.enqueue(go)
 
