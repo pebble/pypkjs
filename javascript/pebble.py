@@ -6,7 +6,7 @@ import itertools
 from uuid import UUID
 
 import PyV8 as v8
-from pebblecomm.pebble import Pebble as PebbleComm, AppMessage
+from pebblecomm.pebble import Pebble as PebbleComm, AppMessage, Notification, Attribute
 
 import events
 from exceptions import JSRuntimeException
@@ -177,7 +177,8 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
 
     def showSimpleNotificationOnPebble(self, title, message):
         self._check_ready()
-        self.pebble.notification_sms(title, message)
+        notification = Notification(title, self.pebble, attributes=[Attribute("BODY", message)])
+        notification.send()
 
     def showNotificationOnPebble(self, opts):
         pass
