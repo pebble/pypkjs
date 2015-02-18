@@ -77,14 +77,13 @@ class WebsocketRunner(Runner):
                 self.broadcast(bytearray('\x01' + message))
         self.pebble.pebble._ser.write = echoing_write
 
-        real_read = self.pebble.pebble._recv_message
+        real_read = self.pebble.pebble._ser.read
         def echoing_read():
-            source, endpoint, resp = real_read()
-            if resp is not None:
-                real_message = struct.pack('>HH', len(resp), endpoint) + resp
-                self.broadcast(bytearray('\x00' + real_message))
-            return source, endpoint, resp
-        self.pebble.pebble._recv_message = echoing_read
+            source, protocol, data, data_again = real_read()
+            if source == 'watch':
+                self.broadcast(bytearray('\x00' + data))
+            return source, protocol, data, data_again
+        self.pebble.pebble._ser.read = echoing_read
 
     def handle_ws(self, environ, start_response):
         if environ['PATH_INFO'] == '/':
