@@ -177,7 +177,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
 
     def showSimpleNotificationOnPebble(self, title, message):
         self._check_ready()
-        notification = Notification(title, self.pebble, attributes=[Attribute("BODY", message)])
+        notification = Notification(self.pebble, title, attributes=[Attribute("BODY", message)])
         notification.send()
 
     def showNotificationOnPebble(self, opts):
