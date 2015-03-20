@@ -2,8 +2,10 @@ backports.ssl-match-hostname==3.4.0.2
 gevent==1.0.1
 gevent-websocket==0.9.3
 greenlet==0.4.5
+peewee==2.4.7
 pygeoip==0.3.2
 pypng==0.0.17
+python-dateutil==2.4.1
 requests==2.5.0
 sh==1.09
 six==1.8.0

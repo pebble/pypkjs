@@ -5,25 +5,33 @@ import zipfile
 from uuid import UUID
 import gevent
 import json
+import logging
 import urlparse
 import urllib
 
 import javascript
 import javascript.runtime
 from pebble_manager import PebbleManager
+from timeline import PebbleTimeline
+import timeline.urls
 
 
 class Runner(object):
     PBW = collections.namedtuple('PBW', ('uuid', 'src', 'manifest'))
 
-    def __init__(self, qemu, pbws):
+    def __init__(self, qemu, pbws, persist_dir=None, oauth_token=None, layout_file=None):
         self.qemu = qemu
         self.pebble = PebbleManager(qemu)
+        self.persist_dir = persist_dir
+        self.oauth_token = oauth_token
         self.pebble.handle_start = self.handle_start
         self.pebble.handle_stop = self.handle_stop
         self.pbws = {}
+        self.logger = logging.getLogger("pypkjs")
         self.running_uuid = None
         self.js = None
+        self.urls = timeline.urls.URLManager()
+        self.timeline = PebbleTimeline(self, persist=persist_dir, oauth=oauth_token, layout_file=layout_file)
         self.load_pbws(pbws)
 
     def load_pbws(self, pbws, start=False):
@@ -40,23 +48,23 @@ class Runner(object):
             self.pbws[uuid] = self.PBW(uuid, src, manifest)
             if start:
                 self.start_js(self.pbws[uuid])
-        print "ready with apps %s" % ', '.join(map(str, self.pbws.keys()))
+        self.logger.info("Ready. Loaded apps: %s", ', '.join(map(str, self.pbws.keys())))
 
     def handle_start(self, uuid):
-        print uuid
+        self.logger.info("Starting %s", uuid)
         if uuid in self.pbws:
-            print "starting js for %s" % uuid
+            self.logger.info("starting js for %s", uuid)
             self.start_js(self.pbws[uuid])
 
     def handle_stop(self, uuid):
         if uuid == self.running_uuid:
-            print "stopping js"
+            self.logger.info("stopping js")
             self.stop_js()
 
     def start_js(self, pbw):
         self.stop_js()
         self.running_uuid = pbw.uuid
-        self.js = javascript.runtime.JSRuntime(self.pebble, pbw.manifest)
+        self.js = javascript.runtime.JSRuntime(self.pebble, pbw.manifest, self)
         self.js.log_output = lambda m: self.log_output(m)
         self.js.open_config_page = lambda url, callback: self.open_config_page(url, callback)
         gevent.spawn(self.js.run, pbw.src)
@@ -69,8 +77,10 @@ class Runner(object):
             self.running_uuid = None
 
     def run(self):
-        print 'connecting'
+        self.logger.info('Connecting to pebble')
         self.pebble.connect()
+        self.timeline.continuous_sync()
+        self.timeline.do_maintenance()
         while self.pebble.pebble._alive:
             gevent.sleep(0.5)
 

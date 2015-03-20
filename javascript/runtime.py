@@ -5,9 +5,12 @@ import gevent
 import gevent.pool
 import gevent.queue
 import gevent.hub
+import logging
 
 from javascript import PebbleKitJS
 from javascript.exceptions import JSRuntimeException
+
+logger = logging.getLogger('pypkjs.javascript.pebble')
 
 make_proxy_extension = v8.JSExtension("runtime/internal/proxy", """
     function _make_proxies(proxy, origin, names) {
@@ -35,11 +38,12 @@ make_proxy_extension = v8.JSExtension("runtime/internal/proxy", """
 
 
 class JSRuntime(object):
-    def __init__(self, qemu, manifest):
+    def __init__(self, qemu, manifest, runner):
         self.group = gevent.pool.Group()
         self.queue = gevent.queue.Queue()
         self.qemu = qemu
         self.manifest = manifest
+        self.runner = runner
         self.runtime_id = JSRuntime.runtimeCount
         JSRuntime.runtimeCount += 1
 
@@ -57,7 +61,7 @@ class JSRuntime(object):
 
         with self.context:
             # go!
-            print "JS starting"
+            logger.info("JS starting")
             try:
                 self.context.eval(src, filename)
             except (v8.JSError, JSRuntimeException) as e:
@@ -71,7 +75,7 @@ class JSRuntime(object):
                 self.event_loop()
             self.pjs.shutdown()
             self.group.kill(timeout=2)
-            print "JS finished"
+            logger.info("JS finished")
 
     def stop(self):
         self.queue.put(StopIteration)
@@ -82,9 +86,13 @@ class JSRuntime(object):
     def event_loop(self):
         try:
             for fn, args, kwargs in self.queue:
-                fn(*args, **kwargs)
+                try:
+                    fn(*args, **kwargs)
+                except (v8.JSError, JSRuntimeException) as e:
+                    self.log_output("Error running asynchronous JavaScript:")
+                    self.log_output(e.stackTrace)
         except gevent.hub.LoopExit:
-            print "Runtime ran out of events; terminating."
+            logger.warning("Runtime ran out of events; terminating.")
 
     def log_output(self, message):
         raise NotImplemented

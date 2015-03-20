@@ -25,6 +25,6 @@ def run_pbw(qemu, pbw_path):
 
 
 if __name__ == "__main__":
-    runner = TerminalRunner(sys.argv[1], sys.argv[2:])
+    runner = TerminalRunner(sys.argv[1], sys.argv[2:], "data")
     runner.run()
 

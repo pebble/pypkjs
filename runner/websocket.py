@@ -1,12 +1,15 @@
 __author__ = 'katharine'
 
-import struct
-import tempfile
 import gevent
-import ssl
 from gevent import pywsgi
 from geventwebsocket import WebSocketError
 from geventwebsocket.handler import WebSocketHandler
+import json
+import logging
+import ssl
+import struct
+import tempfile
+import traceback
 
 from runner import Runner
 
@@ -34,7 +37,8 @@ class Websocket(object):
 
 
 class WebsocketRunner(Runner):
-    def __init__(self, qemu, pbws, port, token=None, ssl_root=None):
+    def __init__(self, qemu, pbws, port, token=None, ssl_root=None, persist_dir=None, oauth_token=None,
+                 layout_file=None):
         self.port = port
         self.token = token
         self.requires_auth = (token is not None)
@@ -43,11 +47,14 @@ class WebsocketRunner(Runner):
         self.websockets = []
         self.ssl_root = ssl_root
         self.config_callback = None
-        super(WebsocketRunner, self).__init__(qemu, pbws)
+        super(WebsocketRunner, self).__init__(qemu, pbws, persist_dir=persist_dir, oauth_token=oauth_token, layout_file=layout_file)
 
     def run(self):
         self.pebble.connect()
         self.patch_pebble()
+        self.timeline.continuous_sync()
+        self.timeline.do_maintenance()
+        logging.getLogger().addHandler(WebsocketLogHandler(self, level=logging.WARNING))
         if self.ssl_root is not None:
             ssl_args = {
                 'keyfile': '%s/server-key.pem' % self.ssl_root,
@@ -62,7 +69,7 @@ class WebsocketRunner(Runner):
         self.pebble.disconnect()
 
     def log_output(self, message):
-        self.broadcast(bytearray('\x02' + message))
+        self.broadcast(bytearray('\x02' + message.encode('utf-8')))
 
     def open_config_page(self, url, callback):
         self.broadcast(bytearray(struct.pack('>BBI%ds' % len(url), 0x0a, 0x01, len(url), url)))
@@ -117,8 +124,8 @@ class WebsocketRunner(Runner):
     # https://pebbletechnology.atlassian.net/wiki/pages/viewpage.action?pageId=491742
     def on_message(self, ws, message):
         if not isinstance(message, bytearray):
-            print "not a bytearray"
-            print message
+            self.logger.debug("not a bytearray")
+            self.logger.debug("received: %s", message)
             return
         opcode = message[0]
         opcode_handlers = {
@@ -128,6 +135,7 @@ class WebsocketRunner(Runner):
             0x09: self.do_auth,
             0x0a: self.do_config_ws,
             0x0b: self.do_qemu_command,
+            0x0c: self.do_timeline_command,
         }
 
         if opcode in opcode_handlers:
@@ -157,7 +165,7 @@ class WebsocketRunner(Runner):
     @must_auth
     def do_install(self, ws, message):
         def go_do_install():
-            with tempfile.NamedTemporaryFile(delete=False) as f:
+            with tempfile.NamedTemporaryFile() as f:
                 f.write(message)
                 f.flush()
                 try:
@@ -192,10 +200,38 @@ class WebsocketRunner(Runner):
         elif message[0] == 0x03:
             self.config_callback("")
             self.config_callback = None
-        else:
-            print "what?"
 
     @must_auth
     def do_qemu_command(self, ws, message):
         protocol = message[0]
         self.pebble.pebble._ser.write(str(message[1:]), protocol=protocol)
+
+    @must_auth
+    def do_timeline_command(self, ws, message):
+        command = message[0]
+        message = str(message[1:])
+        try:
+            if command == 0x01:
+                try:
+                    pin = json.loads(message)
+                except ValueError:
+                    ws.send(bytearray([0x0c, 0x01]))
+                    return
+                self.timeline.handle_pin_create(pin, manual=True)
+                ws.send(bytearray([0x0c, 0x00]))
+            elif command == 0x02:
+                self.timeline.handle_pin_delete({'guid': message})
+        except Exception as e:
+            traceback.print_exc()
+            self.log_output("Pin insert failed: %s: %s" % (type(e).__name__, e.message))
+            ws.send(bytearray([0x0c, 0x01]))
+
+
+class WebsocketLogHandler(logging.Handler):
+    def __init__(self, ws_runner, *args, **kwargs):
+        self.ws_runner = ws_runner
+        logging.Handler.__init__(self, *args, **kwargs)
+        self.setFormatter(logging.Formatter("[PHONESIM] [%(levelname)s] %(message)s"))
+
+    def emit(self, record):
+        self.ws_runner.log_output(self.format(record))

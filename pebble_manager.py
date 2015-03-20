@@ -1,9 +1,13 @@
 __author__ = 'katharine'
 
+import logging
 import struct
 from uuid import UUID
 
 from pebblecomm import Pebble
+from timeline.blobdb import BlobDB
+
+logger = logging.getLogger("pypkjs.pebble_manager")
 
 
 class PebbleManager(object):
@@ -12,20 +16,23 @@ class PebbleManager(object):
         self.pebble = Pebble()
         self.handle_start = None
         self.handle_stop = None
+        self.blobdb = None
 
     def connect(self):
         self.register_endpoints()
         self.pebble.connect_via_qemu(self.qemu)
         self.pebble.emu_bluetooth_connection(True)
+        self.blobdb = BlobDB(self.pebble)
+        self.blobdb.run()
         self.request_running_app()
-        print 'connected to %s' % self.qemu
+        logger.info('connected to %s', self.qemu)
 
     def disconnect(self):
         self.pebble.disconnect()
 
     def register_endpoints(self):
-        self.pebble.register_endpoint("APPLICATION_LIFECYCLE", self.handle_lifecycle)
-        self.pebble.register_endpoint("LAUNCHER", self.handle_launcher)
+        self.pebble.register_endpoint("APPLICATION_LIFECYCLE", self.handle_lifecycle, preprocess=False)
+        self.pebble.register_endpoint("LAUNCHER", self.handle_launcher, preprocess=False)
 
     def request_running_app(self):
         # This is an appmessage with a null UUID and dictionary {2: 1} with a uint8 value.
@@ -34,7 +41,7 @@ class PebbleManager(object):
     def handle_lifecycle(self, endpoint, data):
         state, = struct.unpack_from('<B', data, 0)
         uuid = UUID(bytes=data[1:])
-        print "received lifecycle message for %s: %s" % (uuid, state)
+        logger.debug("received lifecycle message for %s: %s", uuid, state)
         if state == 0x01:  # running
             if callable(self.handle_start):
                 self.handle_start(uuid)
