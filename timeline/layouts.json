@@ -1,0 +1,189 @@
+{
+    "attributes" : {
+        "title" : {
+            "id" : 1,
+            "type" : "string-string",
+            "max_length" : 64
+        },
+        "subtitle" : {
+            "id" : 2,
+            "type" : "string-string",
+            "max_length" : 64
+        },
+        "body" : {
+            "id" : 3,
+            "type" : "string-string",
+            "max_length" : 512
+        },
+        "tinyIcon" : {
+            "id" : 4,
+            "type" : "uri-resource_id"
+        },
+        "smallIcon" : {
+            "id" : 5,
+            "type" : "uri-resource_id"
+        },
+        "largeIcon" : {
+            "id" : 6,
+            "type" : "uri-resource_id"
+        },
+        "ancsAction" : {
+            "id" : 7,
+            "type" : "number-uint32"
+        },
+        "cannedResponse" : {
+            "id" : 8,
+            "type" : "string_array-string_array",
+            "max_length" : 512
+        },
+        "shortTitle" : {
+            "id" : 9,
+            "type" : "string-string",
+            "max_length" : 64
+        },
+        "locationName" : {
+            "id" : 11,
+            "type" : "string-string",
+            "max_length" : 64
+        },
+        "sender" : {
+            "id" : 12,
+            "type" : "string-string",
+            "max_length" : 64
+        },
+        "launchCode" : {
+            "id" : 13,
+            "type" : "number-uint32"
+        },
+        "lastUpdated": {
+            "id": 14,
+            "type": "isodate-unixtime"
+        },
+        "rankAway": {
+            "id": 15,
+            "type": "string-string"
+        },
+        "rankHome": {
+            "id": 16,
+            "type": "string-string"
+        },
+        "nameAway": {
+            "id": 17,
+            "type": "string-string"
+        },
+        "nameHome": {
+            "id": 18,
+            "type": "string-string"
+        },
+        "recordAway": {
+            "id": 19,
+            "type": "string-string"
+        },
+        "recordHome": {
+            "id": 20,
+            "type": "string-string"
+        },
+        "scoreAway": {
+            "id": 21,
+            "type": "string-string"
+        },
+        "scoreHome": {
+            "id": 22,
+            "type": "string-string"
+        },
+        "sportsGameState": {
+            "id": 23,
+            "type": "enum-uint8",
+            "enum": {
+              "pre-game": 0,
+              "in-game": 1
+            }
+        },
+        "broadcaster": {
+            "id": 24,
+            "type": "string-string"
+        }
+    },
+    "layouts" : {
+        "genericPin" : 1,
+        "calendarPin" : 2,
+        "genericReminder" : 3,
+        "genericNotification" : 4,
+        "commNotification" : 5,
+        "weatherPin": 6,
+        "sportsPin": 7
+    },
+    "resources" : {
+        "system://images/NOTIFICATION_STATUS_OPENED_ON_PHONE": 66, 
+        "system://images/STATUS_ICON_CALENDAR": 53, 
+        "system://images/TIMELINE_MAIL_TINY": 99, 
+        "system://images/LAUNCHER_ICON_ALARM": 35, 
+        "system://images/STATUS_ICON_PHONE": 58, 
+        "system://images/LAUNCHER_ICON_CLOCK": 33, 
+        "system://images/SIMPLE_BG": 47, 
+        "system://images/TIMELINE_SUN_TINY": 101, 
+        "system://images/STATUS_ICON_WHATSAPP": 55, 
+        "system://images/LAUNCHER_ICON_SHUTDOWN": 36, 
+        "system://images/SETTINGS_ICON_ACTIVITY_TRACKER": 31, 
+        "system://images/SETTINGS_ICON_QUICK_LAUNCH": 30, 
+        "system://images/NOTIFICATION_STATUS_CHECKMARK": 59, 
+        "system://images/TIMELINE_ALARM_TINY": 91, 
+        "system://images/NOTIFICATION_STATUS_CROSSMARK": 60, 
+        "system://images/NOTIFICATION_STATUS_LARGE_CHECKMARK": 62, 
+        "system://images/STATUS_ICON_FACEBOOK": 51, 
+        "system://images/CHECKMARK": 46, 
+        "system://images/TIMELINE_TAPE_TINY": 102, 
+        "system://images/NOTIFICATION_STATUS_EMOJI": 63, 
+        "system://images/SETTINGS_ICON_BLUETOOTH": 25, 
+        "system://images/TIMELINE_BULB_TINY": 95, 
+        "system://images/FW_UPDATE_PROGRESS": 5, 
+        "system://images/TIMELINE_BATT_EMPTY_TINY": 94, 
+        "system://images/STATUS_ICON_SNAPCHAT": 56, 
+        "system://images/LAUNCHER_ICON_PACKAGE": 32, 
+        "system://images/FW_UPDATE_FAILURE": 6, 
+        "system://images/TIMELINE_BASEBALL_TINY": 92, 
+        "system://images/TIMELINE_FOOTBALL_TINY": 98, 
+        "system://images/STATUS_ICON_BBM": 54, 
+        "system://images/NOTIFICATION_STATUS_LARGE_CROSSMARK": 61, 
+        "system://images/RECOVERY_LAUNCH_APP": 11, 
+        "system://images/BATTERY_ICON_CHARGE": 19, 
+        "system://images/STATUS_ICON_PONG": 49, 
+        "system://images/BATTERY_ICON_LOW": 17, 
+        "system://images/LAUNCHER_ICON_SETTINGS": 39, 
+        "system://images/FW_UPDATE_COMPLETE": 8, 
+        "system://images/TIMELINE_CHAT_TINY": 97, 
+        "system://images/FIRST_USE_LAUNCH_APP": 9, 
+        "system://images/APP_CRASH_FACE": 16, 
+        "system://images/BT_PAIR_SUCCESS": 1, 
+        "system://images/MENU_ICON_SIMPLICITY_WATCH": 21, 
+        "system://images/STATUS_ICON_EMAIL": 50, 
+        "system://images/LAUNCHER_ICON_WATCH": 34, 
+        "system://images/BATTERY_ICON_DEPLETED": 18, 
+        "system://images/STATUS_ICON_KIK": 57, 
+        "system://images/LAUNCHER_ICON_MUSIC": 40, 
+        "system://images/MENU_ICON_EYE": 20, 
+        "system://images/SETTINGS_ICON_DO_NOT_DISTURB": 29, 
+        "system://images/LAUNCHER_ICON_SPORTS": 37, 
+        "system://images/FIRST_USE_DOWNLOAD_APP": 10, 
+        "system://images/SETTINGS_ICON_ABOUT": 27, 
+        "system://images/MENU_ICON_TRASH": 22, 
+        "system://images/SETTINGS_ICON_AIRPLANE": 26, 
+        "system://images/BT_PAIR_CONFIRMATION": 4, 
+        "system://images/NOTIFICATION_STATUS_FAILED": 67, 
+        "system://images/SETTINGS_ICON_BLUETOOTH_ALT": 24, 
+        "system://images/STATUS_ICON_TWITTER": 52, 
+        "system://images/NOTIFICATION_STATUS_MAIL_SENT": 64, 
+        "system://images/LAUNCHER_ICON_GOLF": 38, 
+        "system://images/SETTINGS_ICON_NOTIFICATIONS": 28, 
+        "system://images/TIMELINE_CALENDAR_TINY": 96, 
+        "system://images/DIALOG_HELLO": 15, 
+        "system://images/TIMELINE_BATT_FULL_TINY": 93, 
+        "system://images/BT_PAIR_APPROVE_ON_PHONE": 3, 
+        "system://images/TIMELINE_PIN_TINY": 100, 
+        "system://images/BT_PAIR_FAILURE": 2, 
+        "system://images/SETTINGS_ICON_RESET": 23, 
+        "system://images/STATUS_ICON_SMS": 48, 
+        "system://images/NOTIFICATION_STATUS_MESSAGE_SENT": 65, 
+        "system://images/GENERIC_ICON": 41
+}
+}

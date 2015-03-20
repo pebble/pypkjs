@@ -41,7 +41,8 @@ class PebbleTimeline(object):
                 with open(self._layout_file_path) as f:
                     self._fw_map_cache = json.load(f)
             else:
-                self._fw_map_cache = requests.get(self.map_url).json()
+                with open('timeline/layouts.json') as f:
+                    self._fw_map_cache = json.load(f)
         return self._fw_map_cache
 
     def perform_sync(self):
