@@ -31,6 +31,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                 ['sendAppMessage', 'showSimpleNotificationOnPebble', 'getAccountToken', 'getWatchToken',
                 'addEventListener', 'removeEventListener', 'openURL', 'getTimelineToken', 'timelineSubscribe',
                 'timelineUnsubscribe', 'timelineSubscriptions']);
+            this.platform = 'pypkjs';
         })();
         """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
         self.pebble = pebble.pebble
