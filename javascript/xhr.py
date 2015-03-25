@@ -78,6 +78,7 @@ class XMLHttpRequest(events.EventSourceMixin):
 
         # internal
         self._request = None
+        self._response = None
         self._async = False
         self._mime_override = None
         self._runtime = runtime
@@ -121,16 +122,16 @@ class XMLHttpRequest(events.EventSourceMixin):
                 timeout = self.timeout / 1000.0
             else:
                 timeout = None
-            resp = self._session.send(req, timeout=timeout, verify=True)
+            self._response = self._session.send(req, timeout=timeout, verify=True)
             self.readyState = self.DONE
-            self.status = resp.status_code
-            self.statusText = resp.reason
-            self.responseText = resp.text
+            self.status = self._response.status_code
+            self.statusText = self._response.reason
+            self.responseText = self._response.text
 
             if self.responseType == "json":
-                self.response = resp.json()
+                self.response = self._response.json()
             elif self.responseType == "arraybuffer":
-                self.response = v8.JSObject.create(self._runtime.context.locals.Uint8Array, (v8.JSArray(list(bytearray(resp.content))),))
+                self.response = v8.JSObject.create(self._runtime.context.locals.Uint8Array, (v8.JSArray(list(bytearray(self._response.content))),))
             else:
                 self.response = self.responseText
 
@@ -163,13 +164,22 @@ class XMLHttpRequest(events.EventSourceMixin):
             self._thread.join()
 
     def getResponseHeader(self, header):
-        pass
+        if self._response is not None:
+            return self._response.get(header, None)
+        else:
+            return None
 
     def getAllResponseHeaders(self):
-        pass
+        if self._response is None:
+            return None
+        ret = self._runtime.context.eval("({})")
+        for k, v in self._response.iteritems():
+            ret[str(k)] = str(v)
+        return ret
 
     def abort(self):
-        pass
+        if self._sent and self._thread is not None:
+            self._thread.kill(block=False)
 
 
 def prepare_xhr(runtime):
