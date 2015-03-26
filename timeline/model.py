@@ -132,6 +132,14 @@ class TimelineItem(BaseModel):
                     timestamp = dateutil.parser.parse(pin['updateMessage']['time'])
                 except KeyError:
                     timestamp = dateutil.parser.parse(pin['createTime'])
+
+        if prop == 'createMessage':
+            stale_timestamp = datetime.datetime.now(tz=tzlocal()) - datetime.timedelta(hours=1)
+            if timestamp < stale_timestamp:
+                logger.debug("We had a createMessage, but it's stale; do nothing.")
+                prop = None
+                timestamp = None
+
         if prop is not None:
             logger.debug("Notification!")
             return TimelineItem(uuid=str(uuid.uuid4()), parent=self.uuid, source_kind=self.source_kind,
