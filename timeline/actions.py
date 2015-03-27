@@ -1,6 +1,9 @@
 __author__ = 'katharine'
 
+import gevent
+import json
 import logging
+import requests
 import struct
 import uuid
 
@@ -32,13 +35,14 @@ class ActionHandler(object):
         self.logger.debug("action: %s", action)
 
         action_handlers = {
+            'http': self.handle_http,
             'remove': self.handle_remove,
             # 'mute': self.handle_mute,
         }
         if action['type'] in action_handlers:
-            action_handlers[action['type']](item)
+            action_handlers[action['type']](item, action)
 
-    def handle_remove(self, item):
+    def handle_remove(self, item, action):
         item.deleted = True
         item.save()
         self.pebble.blobdb.delete(BlobDB.DB_PIN, item.uuid)
@@ -46,3 +50,15 @@ class ActionHandler(object):
             self.pebble.blobdb.delete(BlobDB.DB_NOTIFICATION, child.uuid)
             child.deleted = True
             child.save()
+
+    def handle_http(self, item, action):
+        url = action['url']
+        method = action.get('method', 'POST')
+        headers = action.get('headers', {})
+        if 'bodyJSON' in action:
+            body = json.dumps(action['bodyJSON'])
+            if 'Content-Type' not in headers:
+                headers['Content-Type'] = 'application/json'
+        else:
+            body = action.get('body', None)
+        gevent.spawn(requests.request, method, url, headers=headers, data=body)

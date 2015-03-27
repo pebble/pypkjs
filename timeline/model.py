@@ -272,6 +272,7 @@ class TimelineActionSet(object):
         'remove': 0x9,
         'openPin': 0xa,
         'mute': 0x2,  # 0x02 = generic, which serves the purpose for us.
+        'http': 0x2,
     }
 
     def __init__(self, pin):
