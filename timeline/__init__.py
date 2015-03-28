@@ -183,7 +183,8 @@ class PebbleTimeline(object):
     def _window_start(self):
         now = datetime.datetime.now(tz=tzlocal())
         today = datetime.datetime(now.year, now.month, now.day, tzinfo=now.tzinfo)
-        return today
+        yesterday = today - datetime.timedelta(days=1)
+        return yesterday
 
     def _window_end(self):
         distant_future = self._window_start() + datetime.timedelta(days=4)
