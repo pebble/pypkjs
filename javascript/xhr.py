@@ -165,7 +165,7 @@ class XMLHttpRequest(events.EventSourceMixin):
 
     def getResponseHeader(self, header):
         if self._response is not None:
-            return self._response.get(header, None)
+            return self._response.headers.get(header, None)
         else:
             return None
 
@@ -173,7 +173,7 @@ class XMLHttpRequest(events.EventSourceMixin):
         if self._response is None:
             return None
         ret = self._runtime.context.eval("({})")
-        for k, v in self._response.iteritems():
+        for k, v in self._response.headers.iteritems():
             ret[str(k)] = str(v)
         return ret
 
