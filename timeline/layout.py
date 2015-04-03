@@ -54,6 +54,7 @@ class TimelineLayout(object):
             'number-int16':  lambda x, y: struct.pack('<h', x),
             'number-int8':   lambda x, y: struct.pack('<b', x),
             'enum-uint8':    self._enum_lookup,
+            'string_array-string_array': self._serialise_string_array,
             'isodate-unixtime': lambda x, y: struct.pack('<I', calendar.timegm(dateutil.parser.parse(x).utctimetuple()))
         }
         return conversion_methods[attribute_info['type']](value, attribute_info)
@@ -72,4 +73,11 @@ class TimelineLayout(object):
         try:
             return struct.pack('<B', attribute_info['enum'][value])
         except KeyError:
+            return None
+
+    def _serialise_string_array(self, value, attribute_info):
+        try:
+            parts = '\x00'.join(value)
+            return struct.pack('<H%ssB' % len(parts), len(parts), parts, 0x00)
+        except TypeError:
             return None
