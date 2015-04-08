@@ -10,7 +10,7 @@ import datetime
 import calendar
 import struct
 
-from layout import TimelineLayout
+from attributes import TimelineAttributeSet
 
 logger = logging.getLogger("pypkjs.timeline.model")
 db = SqliteDatabase(None)
@@ -85,14 +85,14 @@ class TimelineItem(BaseModel):
         prop = None
         timestamp = None
         # The logic here is kinda confusing. The idea is:
-        # - The first time we send this pin, send the createMessage
-        #   - So the first time we see it, if it has a createMessage, return that.
+        # - The first time we send this pin, send the createNotification
+        #   - So the first time we see it, if it has a createNotification, return that.
         #     - Unless it's over an hour old, in which case we... do nothing?
-        #   - But if we've seen it before but not actually sent it, we might want to update the createMessage
-        # - If we've both seen and actually sent the pin, then we may want to send the updateMessage.
-        #   - If the updateMessage is 'newer' than the previous updateMessage, use that. This means either:
-        #     - its updateMessageTimestamp is newer than before, or
-        #     - it didn't previously have an updateMessage
+        #   - But if we've seen it before but not actually sent it, we might want to update the createNotification
+        # - If we've both seen and actually sent the pin, then we may want to send the updateNotification.
+        #   - If the updateNotification is 'newer' than the previous updateNotification, use that. This means either:
+        #     - its updateNotificationTimestamp is newer than before, or
+        #     - it didn't previously have an updateNotification
         # If none of the above requirements are satisfied, do nothing.
 
         # First, dig up whatever we already have.
@@ -100,43 +100,43 @@ class TimelineItem(BaseModel):
         if old_notification_query.exists():
             old_notification = old_notification_query.get()
             logger.debug("we have an old notification. has_sent: %s, start_time: %s", old_notification.has_sent, old_notification.start_time)
-            # If we've sent one before and we have an updateMessage in the new pin...
-            if old_notification.has_sent and 'updateMessage' in pin:
-                new_timestamp = dateutil.parser.parse(pin['updateMessage']['time'])
-                logger.debug("There exists an updateMessage (ts: %s)", new_timestamp)
+            # If we've sent one before and we have an updateNotification in the new pin...
+            if old_notification.has_sent and 'updateNotification' in pin:
+                new_timestamp = dateutil.parser.parse(pin['updateNotification']['time'])
+                logger.debug("There exists an updateNotification (ts: %s)", new_timestamp)
                 # *and* the new notification is newer than the previous one, then we should use that.
                 if new_timestamp > old_notification.start_time:
                     logger.debug("It has a newer timestamp")
-                    prop = 'updateMessage'
+                    prop = 'updateNotification'
                     timestamp = new_timestamp
-            # If we don't have a new updateMessage to send
+            # If we don't have a new updateNotification to send
             if prop is None:
-                logger.debug("No updateMessage.")
+                logger.debug("No updateNotification.")
                 # But our pin *has* updated more recently
                 if self.updated > old_notification.updated \
                         and not old_notification.has_sent \
-                        and pin.get('createMessage', None) is not None:
-                    logger.debug("But we've updated more recently and haven't yet sent the old notification; use createMessage")
-                    # Then we probably want to get a new createMessage
-                    prop = 'createMessage'
+                        and pin.get('createNotification', None) is not None:
+                    logger.debug("But we've updated more recently and haven't yet sent the old notification; use createNotification")
+                    # Then we probably want to get a new createNotification
+                    prop = 'createNotification'
                     try:
-                        timestamp = dateutil.parser.parse(pin['updateMessage']['time'])
+                        timestamp = dateutil.parser.parse(pin['updateNotification']['time'])
                     except KeyError:
                         timestamp = dateutil.parser.parse(pin['createTime'])
         else:
-            logger.debug("We have no existing notifications; make a new one from createMessage")
-            # If we don't have anything from before, use the createMessage, if any.
-            if pin.get('createMessage', None) is not None:
-                prop = 'createMessage'
+            logger.debug("We have no existing notifications; make a new one from createNotification")
+            # If we don't have anything from before, use the createNotification, if any.
+            if pin.get('createNotification', None) is not None:
+                prop = 'createNotification'
                 try:
-                    timestamp = dateutil.parser.parse(pin['updateMessage']['time'])
+                    timestamp = dateutil.parser.parse(pin['updateNotification']['time'])
                 except KeyError:
                     timestamp = dateutil.parser.parse(pin['createTime'])
 
-        if prop == 'createMessage':
+        if prop == 'createNotification':
             stale_timestamp = datetime.datetime.now(tz=tzlocal()) - datetime.timedelta(hours=1)
             if timestamp < stale_timestamp:
-                logger.debug("We had a createMessage, but it's stale; do nothing.")
+                logger.debug("We had a createNotification, but it's stale; do nothing.")
                 prop = None
                 timestamp = None
 
@@ -169,7 +169,7 @@ class TimelineItem(BaseModel):
             'pin': 2,
             'reminder': 3,
         }
-        layout = TimelineLayout(self, fw_mapping)
+        layout = TimelineAttributeSet(self.layout, fw_mapping)
         attribute_count, serialised_layout = layout.serialise()
         actions = TimelineActionSet(self)
         action_count, serialised_actions = actions.serialise()
@@ -183,20 +183,11 @@ class TimelineItem(BaseModel):
             type_map[self.type],                                        # type
             0,                                                          # flags
             0,                                                          # status
-            layout.layout_id,                                           # layout
+            fw_mapping['layouts'][self.layout['type']],                 # layout
             len(payload),                                               # payload_length
             attribute_count,                                            # num_attributes
             action_count,                                               # num_actions
         ) + payload
-
-    def get_complete_layout(self):
-        parent = self.parent_item
-        if parent is not None:
-            final_layout = parent.layout.copy()
-        else:
-            final_layout = {}
-        final_layout.update(self.layout)
-        return final_layout
 
     def update_topics(self, topics):
         with db.atomic():

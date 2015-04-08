@@ -9,6 +9,7 @@ import uuid
 
 from blobdb import BlobDB
 from model import TimelineItem, TimelineActionSet
+from attributes import TimelineAttributeSet
 
 
 class ActionHandler(object):
@@ -29,18 +30,31 @@ class ActionHandler(object):
         item_id_bytes, action_id, num_attributes = struct.unpack_from("<16sBB", message, 1)
         item_id = str(uuid.UUID(bytes=item_id_bytes))
         self.logger.debug("item_id: %s, action_id: %s", item_id, action_id)
-        item = TimelineItem.get(TimelineItem.uuid == item_id)
-        actions = TimelineActionSet(item)
-        action = actions.get_actions()[action_id]
+        try:
+            item = TimelineItem.get(TimelineItem.uuid == item_id)
+            actions = TimelineActionSet(item)
+            action = actions.get_actions()[action_id]
+        except (TimelineItem.DoesNotExist, KeyError, IndexError):
+            self.send_result(item_id, False, attributes={
+                'subtitle': 'Failed.',
+                'largeIcon': 'system://images/TIMELINE_SENT_LARGE',
+            })
+            self.logger.warn("Discarded unknown action.")
+            return
+
         self.logger.debug("action: %s", action)
 
         action_handlers = {
             'http': self.handle_http,
             'remove': self.handle_remove,
-            # 'mute': self.handle_mute,
+            'dismiss': self.handle_dismiss,
         }
         if action['type'] in action_handlers:
             action_handlers[action['type']](item, action)
+            success, attributes = action_handlers[action['type']](item, action)
+        else:
+            success, attributes = False, {'subtitle': 'Not Implemented', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
+        self.send_result(item_id, success, attributes)
 
     def handle_remove(self, item, action):
         item.deleted = True
@@ -50,6 +64,7 @@ class ActionHandler(object):
             self.pebble.blobdb.delete(BlobDB.DB_NOTIFICATION, child.uuid)
             child.deleted = True
             child.save()
+        return True, {'subtitle': 'Removed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
 
     def handle_http(self, item, action):
         url = action['url']
@@ -62,3 +77,23 @@ class ActionHandler(object):
         else:
             body = action.get('body', None)
         gevent.spawn(requests.request, method, url, headers=headers, data=body)
+
+    def send_result(self, item_id, success, attributes=None):
+        self.logger.info("%sing %s action.", "ACK" if success else "NACK", item_id)
+        if attributes is None:
+            attributes = {}
+        attribute_set = TimelineAttributeSet(attributes, self.timeline.fw_map)
+        attribute_count, serialised = attribute_set.serialise()
+        response = struct.pack(
+            "<B16sBB",
+            0x11,
+            uuid.UUID(item_id).bytes,
+            int(not success),
+            attribute_count
+        ) + serialised
+        self.logger.debug("Serialised action response: %s", response.encode('hex'))
+        self.pebble.pebble._send_message("TIMELINE_ACTION", response)
+
+    def handle_dismiss(self, item):
+        # We don't actually have to do anything for 'dismiss' actions, but the watch expects us to ACK.
+        return True, {'subtitle': 'Dismissed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
