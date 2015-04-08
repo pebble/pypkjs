@@ -6,6 +6,7 @@ import uuid
 
 from blobdb import BlobDB
 from model import TimelineItem, TimelineActionSet
+from attributes import TimelineAttributeSet
 
 
 class ActionHandler(object):
@@ -31,7 +32,10 @@ class ActionHandler(object):
             actions = TimelineActionSet(item)
             action = actions.get_actions()[action_id]
         except (TimelineItem.DoesNotExist, KeyError, IndexError):
-            self.send_result(item_id, action_id, False)
+            self.send_result(item_id, False, attributes={
+                'subtitle': 'Failed.',
+                'largeIcon': 'system://images/TIMELINE_SENT_LARGE',
+            })
             self.logger.warn("Discarded unknown action.")
             return
 
@@ -40,13 +44,12 @@ class ActionHandler(object):
         action_handlers = {
             'remove': self.handle_remove,
             'dismiss': self.handle_dismiss,
-            # 'mute': self.handle_mute,
         }
         if action['type'] in action_handlers:
-            success = action_handlers[action['type']](item)
+            success, attributes = action_handlers[action['type']](item)
         else:
-            success = False
-        self.send_result(item_id, action_id, success)
+            success, attributes = False, {'subtitle': 'Not Implemented', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
+        self.send_result(item_id, success, attributes)
 
     def handle_remove(self, item):
         item.deleted = True
@@ -56,13 +59,24 @@ class ActionHandler(object):
             self.pebble.blobdb.delete(BlobDB.DB_NOTIFICATION, child.uuid)
             child.deleted = True
             child.save()
-        return True
+        return True, {'subtitle': 'Removed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
 
-    def send_result(self, item_id, action_id, success, subtitle=None, icon=None):
-        self.logger.info("%sing (%s, %s).", "ACK" if success else "NACK", item_id, action_id)
-        response = struct.pack("<B16sBBB", 0x11, uuid.UUID(item_id).bytes, action_id, int(not success), 0)
+    def send_result(self, item_id, success, attributes=None):
+        self.logger.info("%sing %s action.", "ACK" if success else "NACK", item_id)
+        if attributes is None:
+            attributes = {}
+        attribute_set = TimelineAttributeSet(attributes, self.timeline.fw_map)
+        attribute_count, serialised = attribute_set.serialise()
+        response = struct.pack(
+            "<B16sBB",
+            0x11,
+            uuid.UUID(item_id).bytes,
+            int(not success),
+            attribute_count
+        ) + serialised
+        self.logger.debug("Serialised action response: %s", response.encode('hex'))
         self.pebble.pebble._send_message("TIMELINE_ACTION", response)
 
     def handle_dismiss(self, item):
         # We don't actually have to do anything for 'dismiss' actions, but the watch expects us to ACK.
-        return True
+        return True, {'subtitle': 'Dismissed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}

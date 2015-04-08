@@ -6,25 +6,19 @@ import logging
 import struct
 import urlparse
 
-logger = logging.getLogger('pypkjs.timeline.layout')
+logger = logging.getLogger('pypkjs.timeline.attributes')
 
 
-class TimelineLayout(object):
-    def __init__(self, item, fw_mapping):
-        self.item = item
+class TimelineAttributeSet(object):
+    def __init__(self, attributes, fw_mapping):
+        self.attributes = attributes
         self.fw_mapping = fw_mapping
 
-    @property
-    def layout_id(self):
-        return self.fw_mapping['layouts'][self.item.get_complete_layout()['type']]
-
     def serialise(self):
-        layout = self.item.get_complete_layout()
-
         serialised = ''
         count = 0
 
-        for key, value in layout.iteritems():
+        for key, value in self.attributes.iteritems():
             if key == 'type':
                 continue
             try:
