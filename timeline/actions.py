@@ -26,17 +26,27 @@ class ActionHandler(object):
         item_id_bytes, action_id, num_attributes = struct.unpack_from("<16sBB", message, 1)
         item_id = str(uuid.UUID(bytes=item_id_bytes))
         self.logger.debug("item_id: %s, action_id: %s", item_id, action_id)
-        item = TimelineItem.get(TimelineItem.uuid == item_id)
-        actions = TimelineActionSet(item)
-        action = actions.get_actions()[action_id]
+        try:
+            item = TimelineItem.get(TimelineItem.uuid == item_id)
+            actions = TimelineActionSet(item)
+            action = actions.get_actions()[action_id]
+        except (TimelineItem.DoesNotExist, KeyError, IndexError):
+            self.send_result(item_id, action_id, False)
+            self.logger.warn("Discarded unknown action.")
+            return
+
         self.logger.debug("action: %s", action)
 
         action_handlers = {
             'remove': self.handle_remove,
+            'dismiss': self.handle_dismiss,
             # 'mute': self.handle_mute,
         }
         if action['type'] in action_handlers:
-            action_handlers[action['type']](item)
+            success = action_handlers[action['type']](item)
+        else:
+            success = False
+        self.send_result(item_id, action_id, success)
 
     def handle_remove(self, item):
         item.deleted = True
@@ -46,3 +56,13 @@ class ActionHandler(object):
             self.pebble.blobdb.delete(BlobDB.DB_NOTIFICATION, child.uuid)
             child.deleted = True
             child.save()
+        return True
+
+    def send_result(self, item_id, action_id, success, subtitle=None, icon=None):
+        self.logger.info("%sing (%s, %s).", "ACK" if success else "NACK", item_id, action_id)
+        response = struct.pack("<B16sBBB", 0x11, uuid.UUID(item_id).bytes, action_id, int(not success), 0)
+        self.pebble.pebble._send_message("TIMELINE_ACTION", response)
+
+    def handle_dismiss(self, item):
+        # We don't actually have to do anything for 'dismiss' actions, but the watch expects us to ACK.
+        return True
