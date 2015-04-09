@@ -50,7 +50,9 @@ class PebbleTimeline(object):
         for type, pin in sync.update_iter():
             try:
                 self.handle_update(type, pin)
-            except KeyError:
+            except (gevent.GreenletExit, KeyboardInterrupt):
+                raise
+            except Exception:
                 traceback.print_exc()
                 self.logger.warning("Skipped invalid pin %s.", pin)
 
