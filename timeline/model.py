@@ -10,7 +10,7 @@ import datetime
 import calendar
 import struct
 
-from layout import TimelineLayout
+from attributes import TimelineAttributeSet
 
 logger = logging.getLogger("pypkjs.timeline.model")
 db = SqliteDatabase(None)
@@ -169,7 +169,7 @@ class TimelineItem(BaseModel):
             'pin': 2,
             'reminder': 3,
         }
-        layout = TimelineLayout(self, fw_mapping)
+        layout = TimelineAttributeSet(self.layout, fw_mapping)
         attribute_count, serialised_layout = layout.serialise()
         actions = TimelineActionSet(self)
         action_count, serialised_actions = actions.serialise()
@@ -183,20 +183,11 @@ class TimelineItem(BaseModel):
             type_map[self.type],                                        # type
             0,                                                          # flags
             0,                                                          # status
-            layout.layout_id,                                           # layout
+            fw_mapping['layouts'][self.layout['type']],                 # layout
             len(payload),                                               # payload_length
             attribute_count,                                            # num_attributes
             action_count,                                               # num_actions
         ) + payload
-
-    def get_complete_layout(self):
-        parent = self.parent_item
-        if parent is not None:
-            final_layout = parent.layout.copy()
-        else:
-            final_layout = {}
-        final_layout.update(self.layout)
-        return final_layout
 
     def update_topics(self, topics):
         with db.atomic():
@@ -272,6 +263,7 @@ class TimelineActionSet(object):
         'remove': 0x9,
         'openPin': 0xa,
         'mute': 0x2,  # 0x02 = generic, which serves the purpose for us.
+        'http': 0x2,
     }
 
     def __init__(self, pin):

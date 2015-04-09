@@ -5,26 +5,21 @@ import dateutil.parser
 import logging
 import struct
 import urlparse
+from colours import PEBBLE_COLOURS
 
-logger = logging.getLogger('pypkjs.timeline.layout')
+logger = logging.getLogger('pypkjs.timeline.attributes')
 
 
-class TimelineLayout(object):
-    def __init__(self, item, fw_mapping):
-        self.item = item
+class TimelineAttributeSet(object):
+    def __init__(self, attributes, fw_mapping):
+        self.attributes = attributes
         self.fw_mapping = fw_mapping
 
-    @property
-    def layout_id(self):
-        return self.fw_mapping['layouts'][self.item.get_complete_layout()['type']]
-
     def serialise(self):
-        layout = self.item.get_complete_layout()
-
         serialised = ''
         count = 0
 
-        for key, value in layout.iteritems():
+        for key, value in self.attributes.iteritems():
             if key == 'type':
                 continue
             try:
@@ -55,7 +50,8 @@ class TimelineLayout(object):
             'number-int8':   lambda x, y: struct.pack('<b', x),
             'enum-uint8':    self._enum_lookup,
             'string_array-string_array': self._serialise_string_array,
-            'isodate-unixtime': lambda x, y: struct.pack('<I', calendar.timegm(dateutil.parser.parse(x).utctimetuple()))
+            'isodate-unixtime': lambda x, y: struct.pack('<I', calendar.timegm(dateutil.parser.parse(x).utctimetuple())),
+            'color-uint8':   self._colour_lookup,
         }
         return conversion_methods[attribute_info['type']](value, attribute_info)
 
@@ -69,15 +65,35 @@ class TimelineLayout(object):
         # We'll need to handle app resources here, when we know what they look like.
         return None
 
+    @staticmethod
     def _enum_lookup(self, value, attribute_info):
         try:
             return struct.pack('<B', attribute_info['enum'][value])
         except KeyError:
             return None
 
+    @staticmethod
     def _serialise_string_array(self, value, attribute_info):
         try:
             parts = '\x00'.join(value)
             return struct.pack('<H%ssB' % len(parts), len(parts), parts, 0x00)
         except TypeError:
             return None
+
+    @staticmethod
+    def _colour_lookup(value, attribute_info):
+        if not isinstance(value, basestring) or len(value) == 0:
+            return None
+
+        # Try a hex colour value
+        if value[0] == '#' and len(value) == 7:
+            try:
+                r8, g8, b8 = int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16)
+            except ValueError:
+                logger.warning("Couldn't parse %s to a colour value.", value)
+                return None
+            r, g, b = r8 >> 6, g8 >> 6, b8 >> 6
+            return 0b11000000 | (r << 4) | (g << 2) | b
+
+        # Try a colour name
+        return PEBBLE_COLOURS.get(value.lower(), None)

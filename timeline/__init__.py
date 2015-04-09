@@ -14,7 +14,7 @@ import traceback
 from actions import ActionHandler
 from blobdb import BlobDB
 import model
-from model import TimelineItem, TimelineState, TimelineLayout, TimelineSubscription, PinTopic
+from model import TimelineItem, TimelineState, TimelineSubscription, PinTopic
 from websync import TimelineWebSync
 
 
