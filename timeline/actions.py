@@ -50,11 +50,17 @@ class ActionHandler(object):
             'dismiss': self.handle_dismiss,
         }
         if action['type'] in action_handlers:
-            action_handlers[action['type']](item, action)
-            success, attributes = action_handlers[action['type']](item, action)
+            try:
+                result = action_handlers[action['type']](item, action)
+                if result is not None:
+                    self.send_result(item_id, *result)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                logging.warning("Something broke: %s", e)
+                self.send_result(item_id, False, {'subtitle': 'Failed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'})
         else:
-            success, attributes = False, {'subtitle': 'Not Implemented', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
-        self.send_result(item_id, success, attributes)
+           self.send_result(item_id, False, {'subtitle': 'Not Implemented', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'})
 
     def handle_remove(self, item, action):
         item.deleted = True
@@ -67,16 +73,30 @@ class ActionHandler(object):
         return True, {'subtitle': 'Removed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
 
     def handle_http(self, item, action):
-        url = action['url']
-        method = action.get('method', 'POST')
-        headers = action.get('headers', {})
-        if 'bodyJSON' in action:
-            body = json.dumps(action['bodyJSON'])
-            if 'Content-Type' not in headers:
-                headers['Content-Type'] = 'application/json'
-        else:
-            body = action.get('body', None)
-        gevent.spawn(requests.request, method, url, headers=headers, data=body)
+        def go():
+            url = action['url']
+            method = action.get('method', 'POST')
+            headers = action.get('headers', {})
+            if 'bodyJSON' in action:
+                body = json.dumps(action['bodyJSON'])
+                if 'Content-Type' not in headers:
+                    headers['Content-Type'] = 'application/json'
+            else:
+                body = action.get('body', None)
+            try:
+                response = requests.request(method, url, headers=headers, data=body, allow_redirects=True, timeout=2.5)
+                response.raise_for_status()
+            except requests.RequestException as e:
+                logging.warning("HTTP request failed: %s", e.message)
+                self.send_result(item.uuid, False, {'subtitle': "Failed", 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'})
+            else:
+                logging.info("HTTP request succeeded.")
+                self.send_result(item.uuid, True, {})
+        gevent.spawn(go)
+
+    def handle_dismiss(self, item, action):
+        # We don't actually have to do anything for 'dismiss' actions, but the watch expects us to ACK.
+        return True, {'subtitle': 'Dismissed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
 
     def send_result(self, item_id, success, attributes=None):
         self.logger.info("%sing %s action.", "ACK" if success else "NACK", item_id)
@@ -93,7 +113,3 @@ class ActionHandler(object):
         ) + serialised
         self.logger.debug("Serialised action response: %s", response.encode('hex'))
         self.pebble.pebble._send_message("TIMELINE_ACTION", response)
-
-    def handle_dismiss(self, item):
-        # We don't actually have to do anything for 'dismiss' actions, but the watch expects us to ACK.
-        return True, {'subtitle': 'Dismissed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
