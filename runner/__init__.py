@@ -84,6 +84,14 @@ class Runner(object):
         while self.pebble.pebble._alive:
             gevent.sleep(0.5)
 
+    @property
+    def account_token(self):
+        return "0123456789abcdef0123456789abcdef"
+
+    @property
+    def watch_token(self):
+        return "0123456789abcdef0123456789abcdef"
+
     def do_config(self):
         if self.js is None:
             self.log_output("Can't show configuration.")

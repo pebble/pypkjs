@@ -198,11 +198,11 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
 
     def getAccountToken(self):
         self._check_ready()
-        return "0123456789abcdef0123456789abcdef"
+        return self.runtime.runner.account_token
 
     def getWatchToken(self):
         self._check_ready()
-        return "0123456789abcdef0123456789abcdef"
+        return self.runtime.runner.watch_token
 
     def openURL(self, url):
         self.runtime.open_config_page(url, self._handle_config_response)

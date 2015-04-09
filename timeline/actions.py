@@ -76,13 +76,19 @@ class ActionHandler(object):
         def go():
             url = action['url']
             method = action.get('method', 'POST')
-            headers = action.get('headers', {})
+            headers = {
+                'X-Pebble-Account-Token': self.timeline.runner.account_token,
+                'X-Pebble-Watch-Token': self.timeline.runner.watch_token,
+            }
             if 'bodyJSON' in action:
                 body = json.dumps(action['bodyJSON'])
-                if 'Content-Type' not in headers:
-                    headers['Content-Type'] = 'application/json'
+                headers['Content-Type'] = 'application/json'
             else:
                 body = action.get('body', None)
+
+            # We set these last, to give the developer the chance to overwrite our headers.
+            headers.update(action.get('headers', {}))
+
             try:
                 response = requests.request(method, url, headers=headers, data=body, allow_redirects=True, timeout=2.5)
                 response.raise_for_status()
@@ -92,6 +98,7 @@ class ActionHandler(object):
             else:
                 logging.info("HTTP request succeeded.")
                 self.send_result(item.uuid, True, {})
+
         gevent.spawn(go)
 
     def handle_dismiss(self, item, action):
