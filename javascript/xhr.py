@@ -172,10 +172,8 @@ class XMLHttpRequest(events.EventSourceMixin):
     def getAllResponseHeaders(self):
         if self._response is None:
             return None
-        ret = self._runtime.context.eval("({})")
-        for k, v in self._response.headers.iteritems():
-            ret[str(k)] = str(v)
-        return ret
+        # https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method
+        return '\x0d\x0a'.join('%s\x3a\x20%s' % (k, v) for k, v in self._response.headers.iteritems())
 
     def abort(self):
         if self._sent and self._thread is not None:
