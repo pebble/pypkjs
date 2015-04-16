@@ -279,7 +279,6 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
 
     def getActiveWatchInfo(self):
         watch_info = self.runtime.runner.pebble.watch_version_info
-        print watch_info
 
         js_object = self.runtime.context.eval("({})")
         platform = PebbleHardware.hardware_platform(watch_info['normal_fw']['hardware_platform'])
