@@ -171,7 +171,6 @@ class WebsocketRunner(Runner):
                 try:
                     self.load_pbws([f.name])
                     self.pebble.pebble.install_app_pebble_protocol(f.name)
-
                 except:
                     try:
                         ws.send(bytearray([0x05, 0x00, 0x00, 0x00, 0x01]))

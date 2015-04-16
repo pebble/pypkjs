@@ -10,7 +10,7 @@ from uuid import UUID
 import urllib
 
 import PyV8 as v8
-from pebblecomm.pebble import Pebble as PebbleComm, AppMessage, Notification, Attribute
+from pebblecomm.pebble import AppMessage, Notification, Attribute, PebbleHardware
 
 import events
 from exceptions import JSRuntimeException
@@ -30,7 +30,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             _make_proxies(this, _internal_pebble(),
                 ['sendAppMessage', 'showSimpleNotificationOnPebble', 'getAccountToken', 'getWatchToken',
                 'addEventListener', 'removeEventListener', 'openURL', 'getTimelineToken', 'timelineSubscribe',
-                'timelineUnsubscribe', 'timelineSubscriptions']);
+                'timelineUnsubscribe', 'timelineSubscriptions', 'getActiveWatchInfo']);
             this.platform = 'pypkjs';
         })();
         """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
@@ -276,6 +276,30 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                 if callable(success):
                     self.runtime.enqueue(success, subs)
         self.runtime.group.spawn(go)
+
+    def getActiveWatchInfo(self):
+        watch_info = self.runtime.runner.pebble.watch_version_info
+        print watch_info
+
+        js_object = self.runtime.context.eval("({})")
+        platform = PebbleHardware.hardware_platform(watch_info['normal_fw']['hardware_platform'])
+        js_object['platform'] = platform
+        model = self.pebble.request_model()  # Note: this could take a while.
+        if model is None:
+            model = 'qemu_platform_%s' % platform
+        js_object['model'] = model
+        js_object['language'] = 'en_US'  # TODO: Actually use a real value for this?
+        firmware_obj = self.runtime.context.eval("({})")
+        version_str = watch_info['normal_fw']['version'][1:]
+        number, suffix = version_str.split('-', 1)
+        number_parts = number.split('.')
+        firmware_obj['major'] = int(number_parts[0])
+        firmware_obj['minor'] = int(number_parts[1]) if len(number_parts) >= 2 else 0
+        firmware_obj['patch'] = int(number_parts[2]) if len(number_parts) >= 3 else 0
+        firmware_obj['suffix'] = suffix
+        js_object['firmware'] = firmware_obj
+        return js_object
+
 
     def _handle_config_response(self, response):
         def go():

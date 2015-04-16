@@ -17,11 +17,13 @@ class PebbleManager(object):
         self.handle_start = None
         self.handle_stop = None
         self.blobdb = None
+        self.watch_version_info = None
 
     def connect(self):
         self.register_endpoints()
         self.pebble.connect_via_qemu(self.qemu)
         self.pebble.emu_bluetooth_connection(True)
+        self.watch_version_info = self.pebble.get_versions()
         self.blobdb = BlobDB(self.pebble)
         self.blobdb.run()
         self.request_running_app()
