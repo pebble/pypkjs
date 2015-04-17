@@ -66,14 +66,14 @@ class TimelineAttributeSet(object):
         return None
 
     @staticmethod
-    def _enum_lookup(self, value, attribute_info):
+    def _enum_lookup(value, attribute_info):
         try:
             return struct.pack('<B', attribute_info['enum'][value])
         except KeyError:
             return None
 
     @staticmethod
-    def _serialise_string_array(self, value, attribute_info):
+    def _serialise_string_array(value, attribute_info):
         try:
             parts = '\x00'.join(value)
             return struct.pack('<H%ssB' % len(parts), len(parts), parts, 0x00)
