@@ -93,7 +93,9 @@ class TimelineAttributeSet(object):
                 logger.warning("Couldn't parse %s to a colour value.", value)
                 return None
             r, g, b = r8 >> 6, g8 >> 6, b8 >> 6
-            return 0b11000000 | (r << 4) | (g << 2) | b
-
+            colour = 0b11000000 | (r << 4) | (g << 2) | b
+        else:
         # Try a colour name
-        return PEBBLE_COLOURS.get(value.lower(), None)
+            colour = PEBBLE_COLOURS.get(value.lower(), None)
+
+        return struct.pack('<B', colour)
