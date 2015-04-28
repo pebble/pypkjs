@@ -235,6 +235,14 @@ class PebbleTimeline(object):
                 if item.uuid in self._pending_sends:
                     continue
                 self.logger.debug("Got pending item %s", item.uuid)
+                try:
+                    parent = TimelineItem.get((TimelineItem.uuid == item.parent) & (TimelineItem.has_sent == False)
+                                              & (TimelineItem.rejected == False))
+                except TimelineItem.DoesNotExist:
+                    pass
+                else:
+                    self.logger.debug("Sending parent, too.")
+                    self._send(parent)
                 self._send(item)
             gevent.sleep(600)
 
