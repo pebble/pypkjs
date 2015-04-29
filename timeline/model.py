@@ -79,7 +79,7 @@ class TimelineItem(BaseModel):
         reminders = []
         for reminder in web_reminders[:3]:
             at = dateutil.parser.parse(reminder['time'])
-            if at > datetime.datetime.utcnow().replace(tzinfo=tzutc()):
+            if at + datetime.timedelta(minutes=15) > datetime.datetime.utcnow().replace(tzinfo=tzutc()):
                 reminders.append(TimelineItem(uuid=str(uuid.uuid4()), parent=self.uuid, source_kind=self.source_kind,
                                     type='reminder', created=self.created, updated=self.updated, start_time=at,
                                     duration=0, layout=reminder['layout']))
