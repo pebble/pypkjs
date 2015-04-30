@@ -48,6 +48,7 @@ class TimelineItem(BaseModel):
 
     uuid = CharField(unique=True, primary_key=True)  # object UUID
     parent = CharField(index=True)  # UUID of the object's "parent"
+    sendable = BooleanField(default=True)
     has_sent = BooleanField(default=False)
     rejected = BooleanField(default=False)
     source_kind = CharField()
@@ -59,6 +60,9 @@ class TimelineItem(BaseModel):
     duration = IntegerField()
     layout = JSONField()
     actions = JSONField(default=[])
+
+    def should_send(self):
+        return self.sendable and not self.has_sent and not self.rejected
 
     @classmethod
     def from_web_pin(cls, pin):
@@ -75,15 +79,16 @@ class TimelineItem(BaseModel):
         reminders = []
         for reminder in web_reminders[:3]:
             at = dateutil.parser.parse(reminder['time'])
-            if at > datetime.datetime.utcnow().replace(tzinfo=tzutc()):
+            if at + datetime.timedelta(minutes=15) > datetime.datetime.utcnow().replace(tzinfo=tzutc()):
                 reminders.append(TimelineItem(uuid=str(uuid.uuid4()), parent=self.uuid, source_kind=self.source_kind,
                                     type='reminder', created=self.created, updated=self.updated, start_time=at,
                                     duration=0, layout=reminder['layout']))
         return reminders
 
-    def get_notification_to_display(self, pin):
+    def get_notification_to_display(self, pin, preexisting):
         prop = None
         timestamp = None
+        sendable = True
         # The logic here is kinda confusing. The idea is:
         # - The first time we send this pin, send the createNotification
         #   - So the first time we see it, if it has a createNotification, return that.
@@ -101,7 +106,7 @@ class TimelineItem(BaseModel):
             old_notification = old_notification_query.get()
             logger.debug("we have an old notification. has_sent: %s, start_time: %s", old_notification.has_sent, old_notification.start_time)
             # If we've sent one before and we have an updateNotification in the new pin...
-            if old_notification.has_sent and 'updateNotification' in pin:
+            if (old_notification.has_sent or not old_notification.sendable) and 'updateNotification' in pin:
                 new_timestamp = dateutil.parser.parse(pin['updateNotification']['time'])
                 logger.debug("There exists an updateNotification (ts: %s)", new_timestamp)
                 # *and* the new notification is newer than the previous one, then we should use that.
@@ -132,19 +137,24 @@ class TimelineItem(BaseModel):
                     timestamp = dateutil.parser.parse(pin['updateNotification']['time'])
                 except KeyError:
                     timestamp = dateutil.parser.parse(pin['createTime'])
+            elif pin.get('updateNotification', None) is not None:
+                # If we have an updateNotification but no createNotification, use that - but mark it as unsendable, so
+                # the watch doesn't find out about it.
+                prop = 'updateNotification'
+                timestamp = dateutil.parser.parse(pin['updateNotification']['time'])
+                sendable = False
 
         if prop == 'createNotification':
             stale_timestamp = datetime.datetime.now(tz=tzlocal()) - datetime.timedelta(hours=1)
             if timestamp < stale_timestamp:
                 logger.debug("We had a createNotification, but it's stale; do nothing.")
-                prop = None
-                timestamp = None
+                sendable = False
 
         if prop is not None:
             logger.debug("Notification!")
             return TimelineItem(uuid=str(uuid.uuid4()), parent=self.uuid, source_kind=self.source_kind,
                                 type='notification', created=self.created, updated=self.updated, start_time=timestamp,
-                                duration=0, layout=pin[prop]['layout'])
+                                duration=0, layout=pin[prop]['layout'], sendable=sendable)
         else:
             logger.debug("No notification")
             return None

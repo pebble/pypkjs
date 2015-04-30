@@ -116,7 +116,7 @@ class PebbleTimeline(object):
                     self.runner.pebble.blobdb.delete(BlobDB.DB_REMINDER, reminder.uuid)
                 reminder.delete_instance()
 
-        next_notification = pin_item.get_notification_to_display(pin)
+        next_notification = pin_item.get_notification_to_display(pin, preexisting=pin_item.exists())
         self.logger.debug("next notification: %s", next_notification)
         reminders = pin_item.make_reminders(pin.get('reminders', []))
         self.logger.debug("reminders: %s", reminders)
@@ -199,6 +199,9 @@ class PebbleTimeline(object):
             'reminder': BlobDB.DB_REMINDER,
         }
 
+        if not item.sendable:
+            return
+
         item.has_sent = False
         item.rejected = False
         item.save(only=(TimelineItem.has_sent, TimelineItem.rejected))
@@ -231,10 +234,19 @@ class PebbleTimeline(object):
             for item in TimelineItem.select().where(
                             (TimelineItem.start_time < self._window_end())
                             & (TimelineItem.has_sent == False)
-                            & (TimelineItem.rejected == False)):
+                            & (TimelineItem.rejected == False)
+                            & (TimelineItem.sendable == True)):
                 if item.uuid in self._pending_sends:
                     continue
                 self.logger.debug("Got pending item %s", item.uuid)
+                try:
+                    parent = TimelineItem.get((TimelineItem.uuid == item.parent) & (TimelineItem.has_sent == False)
+                                              & (TimelineItem.rejected == False) & (TimelineItem.sendable == True))
+                except TimelineItem.DoesNotExist:
+                    pass
+                else:
+                    self.logger.debug("Sending parent, too.")
+                    self._send(parent)
                 self._send(item)
             gevent.sleep(600)
 
