@@ -1,5 +1,7 @@
 backports.ssl-match-hostname==3.4.0.2
-gevent==1.0.1
+# These work with python 2.7.8/2.7.9.
+cython==0.22
+https://s3.amazonaws.com/assets.getpebble.com/sdk/gevent-102-with-ssl279.tar.gz#egg=gevent
 gevent-websocket==0.9.3
 greenlet==0.4.5
 peewee==2.4.7
