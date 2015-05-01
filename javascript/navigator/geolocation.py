@@ -44,7 +44,7 @@ class Geolocation(object):
             if callable(failure):
                 self.runtime.enqueue(failure)
         else:
-            self.runtime.enqueue(success, Position(self.runtime, Coordinates(self.runtime, record['longitude'], record['latitude'], 1000), int(time.time() * 1000)))
+            self.runtime.enqueue(success, Position(self.runtime, Coordinates(self.runtime, record['longitude'], record['latitude'], 1000), round(time.time() * 1000)))
 
     def _enabled(self):
         return True
