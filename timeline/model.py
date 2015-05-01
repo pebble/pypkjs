@@ -82,7 +82,7 @@ class TimelineItem(BaseModel):
             if at + datetime.timedelta(minutes=15) > datetime.datetime.utcnow().replace(tzinfo=tzutc()):
                 reminders.append(TimelineItem(uuid=str(uuid.uuid4()), parent=self.uuid, source_kind=self.source_kind,
                                     type='reminder', created=self.created, updated=self.updated, start_time=at,
-                                    duration=0, layout=reminder['layout']))
+                                    duration=0, layout=reminder['layout'], actions=reminder.get('actions', [])))
         return reminders
 
     def get_notification_to_display(self, pin, preexisting):
@@ -154,7 +154,7 @@ class TimelineItem(BaseModel):
             logger.debug("Notification!")
             return TimelineItem(uuid=str(uuid.uuid4()), parent=self.uuid, source_kind=self.source_kind,
                                 type='notification', created=self.created, updated=self.updated, start_time=timestamp,
-                                duration=0, layout=pin[prop]['layout'], sendable=sendable)
+                                duration=0, layout=pin[prop]['layout'], actions=pin[prop].get('actions', []), sendable=sendable)
         else:
             logger.debug("No notification")
             return None
