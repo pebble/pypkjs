@@ -20,7 +20,7 @@ class LocalStorage(object):
         """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
 
     def get(self, p, name):
-        return self.storage.get(name, v8.JSNull())
+        return self.storage.get(str(name), v8.JSNull())
 
     def set(self, p, name, value):
         self.storage[str(name)] = str(value)
@@ -48,7 +48,7 @@ class LocalStorage(object):
         self.storage.clear()
 
     def getItem(self, name, *args):
-        return self.storage.get(name, v8.JSNull())
+        return self.get(None, name)
 
     def setItem(self, name, value, *args):
         self.set(None, name, value)
