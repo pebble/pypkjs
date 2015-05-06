@@ -20,6 +20,17 @@ class BlobDB(object):
     _PendingItem = collections.namedtuple('_PendingItem', ('token', 'data', 'callback'))
     _PendingAck = collections.namedtuple('_PendingAck', ('timestamp', 'data', 'callback'))
 
+    RESPONSE_CODES = {
+        0x01: "SUCCESS",
+        0x02: "GENERAL_FAILURE",
+        0x03: "INVALID_OPERATION",
+        0x04: "INVALID_DATABASE_ID",
+        0x05: "INVALID_DATA",
+        0x06: "KEY_DOES_NOT_EXIST",
+        0x07: "DATABASE_FULL",
+        0x08: "DATA_STALE",
+    }
+
     def __init__(self, pebble):
         self.pebble = pebble
         self.logger = logging.getLogger('pypkjs.timeline.blobdb')
@@ -102,3 +113,7 @@ class BlobDB(object):
             self.pending_ack[token] = self._PendingAck(time.time(), data, callback)
             self.pebble._send_message("BLOB_DB", data)
             gevent.sleep(0.05)  # To prevent excessive spam.
+
+    @classmethod
+    def stringify_error_code(cls, code):
+        return cls.RESPONSE_CODES.get(code, hex(code))

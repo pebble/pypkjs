@@ -266,6 +266,6 @@ class PebbleTimeline(object):
             item.has_sent = True
             item.save(only=[TimelineItem.has_sent])
         else:
-            self.logger.warning("Timeline item insert failed: %s", status)
+            self.logger.warning("Timeline item insert failed: %s", BlobDB.stringify_error_code(status))
             item.rejected = True
             item.save(only=[TimelineItem.rejected])
