@@ -229,7 +229,7 @@ class PebbleTimeline(object):
         while True:
             self.logger.debug("Running maintenance process.")
             # Delete old timeline items predating the window.
-            TimelineItem.delete().where(TimelineItem.start_time < (self._window_start() - datetime.timedelta(days=1))).execute()
+            TimelineItem.delete().where(TimelineItem.start_time < self._window_start()).execute()
             # Send timeline items that are now in the end of our window.
             for item in TimelineItem.select().where(
                             (TimelineItem.start_time < self._window_end())
