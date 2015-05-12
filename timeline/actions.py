@@ -36,8 +36,8 @@ class ActionHandler(object):
             action = actions.get_actions()[action_id]
         except (TimelineItem.DoesNotExist, KeyError, IndexError):
             self.send_result(item_id, False, attributes={
-                'subtitle': 'Failed.',
-                'largeIcon': 'system://images/TIMELINE_SENT_LARGE',
+                'subtitle': 'Failed',
+                'largeIcon': 'system://images/RESULT_FAILED',
             })
             self.logger.warn("Discarded unknown action.")
             return
@@ -58,9 +58,9 @@ class ActionHandler(object):
                 import traceback
                 traceback.print_exc()
                 logging.warning("Something broke: %s", e)
-                self.send_result(item_id, False, {'subtitle': 'Failed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'})
+                self.send_result(item_id, False, {'subtitle': 'Failed', 'largeIcon': 'system://images/RESULT_SENT'})
         else:
-           self.send_result(item_id, False, {'subtitle': 'Not Implemented', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'})
+           self.send_result(item_id, False, {'subtitle': 'Not Implemented', 'largeIcon': 'system://images/RESULT_FAILED'})
 
     def handle_remove(self, item, action):
         item.deleted = True
@@ -70,7 +70,7 @@ class ActionHandler(object):
             self.pebble.blobdb.delete(BlobDB.DB_NOTIFICATION, child.uuid)
             child.deleted = True
             child.save()
-        return True, {'subtitle': 'Removed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
+        return True, {'subtitle': 'Removed', 'largeIcon': 'system://images/RESULT_DELETED'}
 
     def handle_http(self, item, action):
         def go():
@@ -94,7 +94,7 @@ class ActionHandler(object):
                 response.raise_for_status()
             except requests.RequestException as e:
                 logging.warning("HTTP request failed: %s", e.message)
-                self.send_result(item.uuid, False, {'subtitle': "Failed", 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'})
+                self.send_result(item.uuid, False, {'subtitle': "Failed", 'largeIcon': 'system://images/RESULT_FAILED'})
             else:
                 logging.info("HTTP request succeeded.")
                 self.send_result(item.uuid, True, {})
@@ -103,7 +103,7 @@ class ActionHandler(object):
 
     def handle_dismiss(self, item, action):
         # We don't actually have to do anything for 'dismiss' actions, but the watch expects us to ACK.
-        return True, {'subtitle': 'Dismissed', 'largeIcon': 'system://images/TIMELINE_SENT_LARGE'}
+        return True, {'subtitle': 'Dismissed', 'largeIcon': 'system://images/RESULT_DISMISSED'}
 
     def send_result(self, item_id, success, attributes=None):
         self.logger.info("%sing %s action.", "ACK" if success else "NACK", item_id)
