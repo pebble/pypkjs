@@ -94,7 +94,7 @@ class Runner(object):
 
     def do_config(self):
         if self.js is None:
-            self.log_output("Can't show configuration.")
+            self.log_output("No JS found, can't show configuration.")
             return
         self.js.do_config()
 
