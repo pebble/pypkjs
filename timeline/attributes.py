@@ -76,7 +76,7 @@ class TimelineAttributeSet(object):
     def _serialise_string_array(value, attribute_info):
         try:
             parts = '\x00'.join(value)
-            return struct.pack('<H%ssB' % len(parts), len(parts), parts.encode('utf-8'), 0x00)
+            return struct.pack('<%ss' % len(parts), parts.encode('utf-8'))
         except TypeError:
             return None
 
