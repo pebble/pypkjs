@@ -1,6 +1,5 @@
 backports.ssl-match-hostname==3.4.0.2
-# This works with python 2.7.8/2.7.9.
-gevent=1.0.2
+gevent==1.0.2
 gevent-websocket==0.9.3
 greenlet==0.4.7
 peewee==2.4.7
