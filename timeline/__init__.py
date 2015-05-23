@@ -1,7 +1,5 @@
 __author__ = 'katharine'
 
-import gevent_ssl_hack
-
 import datetime
 from dateutil.tz import tzlocal, tzutc
 import dateutil.parser
