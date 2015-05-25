@@ -18,12 +18,14 @@ class PebbleManager(object):
         self.handle_stop = None
         self.blobdb = None
         self.watch_version_info = None
+        self.watch_fw_version = None
 
     def connect(self):
         self.register_endpoints()
         self.pebble.connect_via_qemu(self.qemu)
         self.pebble.emu_bluetooth_connection(True)
         self.watch_version_info = self.pebble.get_versions()
+        self.watch_fw_version = self.pebble.get_watch_fw_version()
         self.blobdb = BlobDB(self.pebble)
         self.blobdb.run()
         self.request_running_app()
@@ -39,6 +41,9 @@ class PebbleManager(object):
     def request_running_app(self):
         # This is an appmessage with a null UUID and dictionary {2: 1} with a uint8 value.
         self.pebble._send_message("LAUNCHER", "\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x00\x00\x00\x02\x01\x00\x01")
+
+    def is_timeline_supported(self):
+        return self.watch_fw_version[0] >= 3
 
     def handle_lifecycle(self, endpoint, data):
         state, = struct.unpack_from('<B', data, 0)

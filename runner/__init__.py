@@ -34,6 +34,7 @@ class Runner(object):
         self.timeline = PebbleTimeline(self, persist=persist_dir, oauth=oauth_token, layout_file=layout_file)
         self.load_pbws(pbws)
 
+
     def load_pbws(self, pbws, start=False):
         for pbw_path in pbws:
             with zipfile.ZipFile(pbw_path) as z:
@@ -79,8 +80,9 @@ class Runner(object):
     def run(self):
         self.logger.info('Connecting to pebble')
         self.pebble.connect()
-        self.timeline.continuous_sync()
-        self.timeline.do_maintenance()
+        if self.pebble.is_timeline_supported():
+            self.timeline.continuous_sync()
+            self.timeline.do_maintenance()
         while self.pebble.pebble._alive:
             gevent.sleep(0.5)
 
