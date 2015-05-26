@@ -108,7 +108,8 @@ class WebsocketRunner(Runner):
         ws.authed = not self.requires_auth
 
     def on_close(self, ws):
-        self.websockets.remove(ws)
+        if ws in self.websockets:
+            self.websockets.remove(ws)
 
     def broadcast(self, message):
         to_remove = []
