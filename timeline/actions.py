@@ -84,7 +84,7 @@ class ActionHandler(object):
                 body = json.dumps(action['bodyJSON'])
                 headers['Content-Type'] = 'application/json'
             else:
-                body = action.get('body', None)
+                body = action.get('bodyText', None)
 
             # We set these last, to give the developer the chance to overwrite our headers.
             headers.update(action.get('headers', {}))
