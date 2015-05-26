@@ -64,7 +64,7 @@ class Runner(object):
     def start_js(self, pbw):
         self.stop_js()
         self.running_uuid = pbw.uuid
-        self.js = javascript.runtime.JSRuntime(self.pebble, pbw.manifest, self)
+        self.js = javascript.runtime.JSRuntime(self.pebble, pbw.manifest, self, persist_dir=self.persist_dir)
         self.js.log_output = lambda m: self.log_output(m)
         self.js.open_config_page = lambda url, callback: self.open_config_page(url, callback)
         gevent.spawn(self.js.run, pbw.src)

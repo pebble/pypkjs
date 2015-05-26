@@ -10,14 +10,15 @@ from xhr import prepare_xhr
 from navigator import Navigator
 
 class PebbleKitJS(object):
-    def __init__(self, runtime, pebble):
+    def __init__(self, runtime, pebble, persist=None):
         self.runtime = runtime
         self.pebble = Pebble(runtime, pebble)
+        self.local_storage = LocalStorage(runtime, persist)
 
         self.extensions = [
             Console(runtime),
             Performance(runtime),
-            LocalStorage(runtime),
+            self.local_storage,
             Navigator(runtime),
             Timers(runtime),
             self.pebble,
@@ -30,4 +31,5 @@ class PebbleKitJS(object):
         prepare_xhr(self.runtime)
 
     def shutdown(self):
+        self.local_storage._shutdown()
         self.pebble._shutdown()

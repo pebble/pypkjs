@@ -38,17 +38,18 @@ make_proxy_extension = v8.JSExtension("runtime/internal/proxy", """
 
 
 class JSRuntime(object):
-    def __init__(self, qemu, manifest, runner):
+    def __init__(self, qemu, manifest, runner, persist_dir=None):
         self.group = gevent.pool.Group()
         self.queue = gevent.queue.Queue()
         self.qemu = qemu
         self.manifest = manifest
         self.runner = runner
         self.runtime_id = JSRuntime.runtimeCount
+        self.persist_dir = persist_dir
         JSRuntime.runtimeCount += 1
 
     def setup(self):
-        self.pjs = PebbleKitJS(self, self.qemu)
+        self.pjs = PebbleKitJS(self, self.qemu, persist=self.persist_dir)
         self.context = v8.JSContext(extensions=self.pjs.get_extension_names())
         with self.context:
             # Do some setup
@@ -73,9 +74,10 @@ class JSRuntime(object):
             else:
                 self.enqueue(self.pjs.pebble._connect)
                 self.event_loop()
-            self.pjs.shutdown()
-            self.group.kill(timeout=2)
-            logger.info("JS finished")
+            finally:
+                self.pjs.shutdown()
+                self.group.kill(timeout=2)
+                logger.info("JS finished")
 
     def stop(self):
         self.queue.put(StopIteration)

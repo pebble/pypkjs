@@ -1,12 +1,34 @@
 __author__ = 'katharine'
 
 import PyV8 as v8
+import errno
+import logging
+import os
+import os.path
+import dumbdbm  # This is the only one that actually syncs data if the process dies before I can close().
+logger = logging.getLogger("pypkjs.javascript.localstorage")
 
-_storage_cache = {}
+_storage_cache = {}  # This is used when filesystem-based storage is unavailable.
+
 
 class LocalStorage(object):
-    def __init__(self, runtime):
-        self.storage = _storage_cache.setdefault(runtime.manifest['uuid'], {})
+    def __init__(self, runtime, persist_dir=None):
+        self.storage = None
+        if persist_dir is not None:
+            try:
+                try:
+                    os.makedirs(os.path.join(persist_dir, 'localstorage'))
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        raise
+
+                self.storage = dumbdbm.open(os.path.join(persist_dir, 'localstorage', runtime.manifest['uuid']), 'c')
+            except IOError:
+                pass
+        if self.storage is None:
+            logger.warning("Using transient store.")
+            self.storage = _storage_cache.setdefault(runtime.manifest['uuid'], {})
+
         self.extension = v8.JSExtension(runtime.ext_name("localstorage"), """
         (function() {
             native function _internal();
@@ -24,7 +46,6 @@ class LocalStorage(object):
 
     def set(self, p, name, value):
         self.storage[str(name)] = str(value)
-        #TODO: actually store this somewhere.
         return True
 
     def has(self, p, name):
@@ -33,7 +54,6 @@ class LocalStorage(object):
     def delete_(self, p, name):
         if name in self.storage:
             del self.storage[name]
-            #TODO: actually store this somewhere.
             return True
         else:
             return False
@@ -61,3 +81,7 @@ class LocalStorage(object):
             return self.storage.keys()[index]
         else:
             return v8.JSNull()
+
+    def _shutdown(self):
+        if hasattr(self.storage, 'close'):
+            self.storage.close()
