@@ -213,7 +213,10 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         result = requests.get(self.runtime.runner.urls.sandbox_token % self.uuid,
                               headers={'Authorization': 'Bearer %s' % self.runtime.runner.oauth_token})
         if result.status_code == 404:
-            raise TokenException("No token available for this app and user.")
+            raise TokenException("No token available; make sure the app is timeline enabled "
+                                 "and this user authorised in the developer portal.")
+        elif result.status_code == 401:
+            raise TokenException("User login rejected; make sure you are logged in to the SDK.")
         result.raise_for_status()
         logger.debug("get_timeline_token result: %s", result.json())
         self._timeline_token = result.json()['token']
