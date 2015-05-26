@@ -170,7 +170,7 @@ class WebsocketRunner(Runner):
                 f.write(message)
                 f.flush()
                 try:
-                    self.load_pbws([f.name])
+                    self.load_pbws([f.name], cache=True)
                     self.pebble.pebble.install_app_pebble_protocol(f.name)
                 except:
                     try:

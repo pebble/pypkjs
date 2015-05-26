@@ -6,6 +6,9 @@ from uuid import UUID
 import gevent
 import json
 import logging
+import os
+import os.path
+import shutil
 import urlparse
 import urllib
 
@@ -32,9 +35,10 @@ class Runner(object):
         self.js = None
         self.urls = timeline.urls.URLManager()
         self.timeline = PebbleTimeline(self, persist=persist_dir, oauth=oauth_token, layout_file=layout_file)
+        self.load_cached_pbws()
         self.load_pbws(pbws)
 
-    def load_pbws(self, pbws, start=False):
+    def load_pbws(self, pbws, start=False, cache=False):
         for pbw_path in pbws:
             with zipfile.ZipFile(pbw_path) as z:
                 try:
@@ -45,10 +49,17 @@ class Runner(object):
                 src = z.open('pebble-js-app.js').read().decode('utf-8')
             manifest = json.loads(appinfo)
             uuid = UUID(manifest['uuid'])
+            if cache and self._pbw_cache_dir is not None:
+                shutil.copy(pbw_path, os.path.join(self._pbw_cache_dir, '%s.pbw' % uuid))
             self.pbws[uuid] = self.PBW(uuid, src, manifest)
             if start:
                 self.start_js(self.pbws[uuid])
         self.logger.info("Ready. Loaded apps: %s", ', '.join(map(str, self.pbws.keys())))
+
+    def load_cached_pbws(self):
+        cache_dir = self._pbw_cache_dir
+        if cache_dir is not None:
+            self.load_pbws([os.path.join(cache_dir, x) for x in os.listdir(cache_dir)])
 
     def handle_start(self, uuid):
         self.logger.info("Starting %s", uuid)
@@ -114,3 +125,12 @@ class Runner(object):
         encoded_params = urllib.urlencode(params)
         query += encoded_params
         return urlparse.urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, query, parsed.fragment))
+
+    @property
+    def _pbw_cache_dir(self):
+        if self.persist_dir is None:
+            return None
+        path = os.path.join(self.persist_dir, 'app_cache')
+        if not os.path.exists(path):
+            os.makedirs(path)
+        return path
