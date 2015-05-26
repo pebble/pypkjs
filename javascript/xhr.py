@@ -36,8 +36,8 @@ ProgressEvent = lambda runtime, *args: v8.JSObject.create(runtime.context.locals
 
 xml_http_request = v8.JSExtension("runtime/xhr", """
 _init_xhr = function(runtime, session) {
+    native function _xhr();
     this.XMLHttpRequest = function() {
-        native function _xhr();
         var origin = new _xhr(runtime, session);
         _make_proxies(this, origin, ['open', 'setRequestHeader', 'overrideMimeType', 'send', 'getResponseHeader',
                                         'getAllResponseHeaders', 'abort', 'addEventListener', 'removeEventListener']);
@@ -45,6 +45,12 @@ _init_xhr = function(runtime, session) {
                                         'statusText', 'timeout', 'onreadystatechange', 'ontimeout', 'onload',
                                         'onloadstart', 'onloadend', 'onprogress', 'onerror', 'onabort']);
     }
+    this.XMLHttpRequest.UNSENT = 0;
+    this.XMLHttpRequest.OPENED = 1;
+    this.XMLHttpRequest.HEADERS_RECEIVED = 2;
+    this.XMLHttpRequest.LOADING = 3;
+    this.XMLHttpRequest.DONE = 4;
+
 }
 """, lambda f: XMLHttpRequest, dependencies=[progress_event.name])
 
