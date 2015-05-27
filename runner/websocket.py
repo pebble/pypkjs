@@ -52,7 +52,7 @@ class WebsocketRunner(Runner):
     def run(self):
         self.pebble.connect()
         self.patch_pebble()
-        if self.pebble.is_timeline_supported():
+        if self.pebble.timeline_is_supported:
             self.timeline.continuous_sync()
             self.timeline.do_maintenance()
         logging.getLogger().addHandler(WebsocketLogHandler(self, level=logging.WARNING))

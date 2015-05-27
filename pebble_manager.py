@@ -2,6 +2,7 @@ __author__ = 'katharine'
 
 import logging
 import struct
+import re
 from uuid import UUID
 
 from pebblecomm import Pebble
@@ -24,8 +25,7 @@ class PebbleManager(object):
         self.register_endpoints()
         self.pebble.connect_via_qemu(self.qemu)
         self.pebble.emu_bluetooth_connection(True)
-        self.watch_version_info = self.pebble.get_versions()
-        self.watch_fw_version = self.pebble.get_watch_fw_version()
+        self.determine_version_info()
         self.blobdb = BlobDB(self.pebble)
         self.blobdb.run()
         self.request_running_app()
@@ -38,12 +38,16 @@ class PebbleManager(object):
         self.pebble.register_endpoint("APPLICATION_LIFECYCLE", self.handle_lifecycle, preprocess=False)
         self.pebble.register_endpoint("LAUNCHER", self.handle_launcher, preprocess=False)
 
+    def determine_version_info(self):
+        self.watch_version_info = self.pebble.get_versions()
+        
+        version_str = self.watch_version_info['normal_fw']['version'][1:]
+        pieces = re.split("[\.\-]", version_str)
+        self.watch_fw_version = [int(pieces[0]), int(pieces[1])] 
+    
     def request_running_app(self):
         # This is an appmessage with a null UUID and dictionary {2: 1} with a uint8 value.
         self.pebble._send_message("LAUNCHER", "\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x00\x00\x00\x02\x01\x00\x01")
-
-    def is_timeline_supported(self):
-        return self.watch_fw_version[0] >= 3
 
     def handle_lifecycle(self, endpoint, data):
         state, = struct.unpack_from('<B', data, 0)
@@ -70,3 +74,8 @@ class PebbleManager(object):
         elif state == 0x00:  # not running
             if callable(self.handle_stop):
                 self.handle_stop(uuid)
+    
+    @property
+    def timeline_is_supported(self):
+        return self.watch_fw_version[0] >= 3
+
