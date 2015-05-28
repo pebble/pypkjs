@@ -122,8 +122,6 @@ class XMLHttpRequest(events.EventSourceMixin):
 
     def _do_send(self):
         self._sent = True
-        
-
         req = self._session.prepare_request(self._request)
         try:
             if self.timeout:
