@@ -137,7 +137,7 @@ class XMLHttpRequest(events.EventSourceMixin):
             if self.responseType == "json":
                 self.response = self._response.json()
             elif self.responseType == "arraybuffer":
-                self.response = v8.JSObject.create(self._runtime.context.locals.Uint8Array, (v8.JSArray(list(bytearray(self._response.content))),))
+                self.response = v8.JSObject.create(self._runtime.context.locals.Uint8Array, (v8.JSArray(list(bytearray(self._response.content))),)).buffer
             else:
                 self.response = self.responseText
 
@@ -164,7 +164,12 @@ class XMLHttpRequest(events.EventSourceMixin):
 
     def send(self, data=None):
         if data is not None:
-            self._request.data = str(data)
+            if not isinstance(data, basestring) and str(data) == '[object ArrayBuffer]':
+                uint8_array = self._runtime.context.locals.Uint8Array
+                data_array = uint8_array.create(uint8_array, (data,))
+                self._request.data = bytes(bytearray(data_array[str(x)] for x in xrange(data_array.length)))
+            else:
+                self._request.data = str(data)
         self._thread = self._runtime.group.spawn(self._do_send)
         if not self._async:
             self._thread.join()
