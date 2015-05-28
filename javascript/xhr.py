@@ -137,7 +137,7 @@ class XMLHttpRequest(events.EventSourceMixin):
             if self.responseType == "json":
                 self.response = self._response.json()
             elif self.responseType == "arraybuffer":
-                self.response = v8.JSObject.create(self._runtime.context.locals.Uint8Array, (v8.JSArray(list(bytearray(self._response.content))),))
+                self.response = v8.JSObject.create(self._runtime.context.locals.Uint8Array, (v8.JSArray(list(bytearray(self._response.content))),)).buffer
             else:
                 self.response = self.responseText
 
