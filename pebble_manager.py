@@ -1,8 +1,8 @@
 __author__ = 'katharine'
 
 import logging
-import struct
 import re
+import struct
 from uuid import UUID
 
 from pebblecomm import Pebble
@@ -42,7 +42,7 @@ class PebbleManager(object):
         self.watch_version_info = self.pebble.get_versions()
         
         version_str = self.watch_version_info['normal_fw']['version'][1:]
-        pieces = re.split("[\.\-]", version_str)
+        pieces = re.split(r"[.-]", version_str)
         self.watch_fw_version = [int(pieces[0]), int(pieces[1])] 
     
     def request_running_app(self):
