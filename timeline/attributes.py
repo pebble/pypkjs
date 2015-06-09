@@ -5,6 +5,9 @@ import dateutil.parser
 import logging
 import struct
 import urlparse
+
+from libpebble2.protocol.timeline import TimelineAttribute
+
 from colours import PEBBLE_COLOURS
 
 logger = logging.getLogger('pypkjs.timeline.attributes')
@@ -16,8 +19,7 @@ class TimelineAttributeSet(object):
         self.fw_mapping = fw_mapping
 
     def serialise(self):
-        serialised = ''
-        count = 0
+        serialised = []
 
         for key, value in self.attributes.iteritems():
             if key == 'type':
@@ -32,11 +34,10 @@ class TimelineAttributeSet(object):
             if converted is None:
                 logger.warning("Couldn't convert '%s' value '%s'", key, value)
                 continue
-            logger.debug("attribute (%s, %s) -> (%s, %s, %s)", key, value, attribute_info['id'], len(converted), converted.encode('hex'))
-            serialised += struct.pack("<BH", attribute_info['id'], len(converted)) + converted
-            count += 1
+            logger.debug("attribute (%s, %s) -> (%s, %s)", key, value, attribute_info['id'], converted.encode('hex'))
+            serialised.append(TimelineAttribute(attribute_id=attribute_info['id'], content=converted))
 
-        return count, serialised
+        return serialised
 
     def convert_type(self, attribute_info, value):
         conversion_methods = {
@@ -95,7 +96,7 @@ class TimelineAttributeSet(object):
             r, g, b = r8 >> 6, g8 >> 6, b8 >> 6
             colour = 0b11000000 | (r << 4) | (g << 2) | b
         else:
-        # Try a colour name
+            # Try a colour name
             colour = PEBBLE_COLOURS.get(value.lower(), None)
 
         return struct.pack('<B', colour)

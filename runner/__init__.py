@@ -89,12 +89,11 @@ class Runner(object):
 
     def run(self):
         self.logger.info('Connecting to pebble')
-        self.pebble.connect()
+        greenlet = self.pebble.connect()
         if self.pebble.timeline_is_supported:
             self.timeline.continuous_sync()
             self.timeline.do_maintenance()
-        while self.pebble.pebble._alive:
-            gevent.sleep(0.5)
+        greenlet.join()
 
     @property
     def account_token(self):

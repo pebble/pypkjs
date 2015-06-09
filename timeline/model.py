@@ -10,6 +10,8 @@ import datetime
 import calendar
 import struct
 
+from libpebble2.protocol.timeline import *
+
 from attributes import TimelineAttributeSet
 
 logger = logging.getLogger("pypkjs.timeline.model")
@@ -175,29 +177,26 @@ class TimelineItem(BaseModel):
 
     def serialise(self, fw_mapping):
         type_map = {
-            'notification': 1,
-            'pin': 2,
-            'reminder': 3,
+            'notification': TimelineItem.Type.Notification,
+            'pin': TimelineItem.Type.Pin,
+            'reminder': TimelineItem.Type.Reminder,
         }
         layout = TimelineAttributeSet(self.layout, fw_mapping)
-        attribute_count, serialised_layout = layout.serialise()
+        serialised_layout = layout.serialise()
         actions = TimelineActionSet(self)
-        action_count, serialised_actions = actions.serialise()
-        payload = serialised_layout + serialised_actions
-        return struct.pack(
-            "<16s16sIHBBBBHBB",
-            uuid.UUID(self.uuid).bytes,                                 # uuid
-            uuid.UUID(self.parent).bytes,                               # parent
-            calendar.timegm(self.start_time.utctimetuple()),            # timestamp
-            self.duration,                                              # duration
-            type_map[self.type],                                        # type
-            0,                                                          # flags
-            0,                                                          # status
-            fw_mapping['layouts'][self.layout['type']],                 # layout
-            len(payload),                                               # payload_length
-            attribute_count,                                            # num_attributes
-            action_count,                                               # num_actions
-        ) + payload
+        serialised_actions = actions.serialise()
+
+        TimelineItem(
+            item_id=uuid.UUID(self.uuid),
+            parent_id=uuid.UUID(self.parent),
+            timestamp=calendar.timegm(self.start_time.utctimetuple()),
+            duration=self.duration,
+            type=type_map[self.type],
+            flags=0,
+            layout=fw_mapping['layouts'][self.layout['type']],
+            attributes=serialised_layout,
+            actions=serialised_actions
+        )
 
     def update_topics(self, topics):
         with db.atomic():
@@ -268,12 +267,12 @@ class TimelineActionSet(object):
         'notification': (({'type': 'dismiss', 'title': 'Dismiss'},), ({'type': 'openPin', 'title': 'More'}, {'type': 'mute', 'title': 'Mute App'})),
     }
     ACTION_TYPES = {
-        'dismiss': 0x4,
-        'openWatchApp': 0x7,
-        'remove': 0x9,
-        'openPin': 0xa,
-        'mute': 0x2,  # 0x02 = generic, which serves the purpose for us.
-        'http': 0x2,
+        'dismiss': TimelineAction.Type.Dismiss,
+        'openWatchApp': TimelineAction.Type.OpenWatchapp,
+        'remove': TimelineAction.Type.Remove,
+        'openPin': TimelineAction.Type.OpenPin,
+        'mute': TimelineAction.Type.Generic,
+        'http': TimelineAction.Type.Generic,
     }
 
     def __init__(self, pin):
@@ -283,18 +282,14 @@ class TimelineActionSet(object):
         return self.DEFAULT_ACTIONS[self.pin.type][0] + tuple(self.pin.actions) + self.DEFAULT_ACTIONS[self.pin.type][1]
 
     def serialise(self):
-        action_count = 0
-        serialised = ''
+        serialised = []
         for action_id, action in enumerate(self.get_actions()):
             action_type = self.ACTION_TYPES[action['type']]
+            action = TimelineAction(action_id=action_id, type=action_type,
+                                    attributes=TimelineAttributeSet(action).serialise())
+            serialised.append(action)
 
-            attribute_count, serialised_attributes = self.serialise_attributes(action)
-            serialised_action = struct.pack('<BBB', action_id, action_type, attribute_count) + serialised_attributes
-            action_count += 1
-            logger.debug("serialised action. %d encoded: %s", attribute_count, serialised_action.encode('hex'))
-            serialised += serialised_action
-
-        return action_count, serialised
+        return serialised
 
     def serialise_attributes(self, attributes):
         serialised = ''

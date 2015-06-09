@@ -4,10 +4,11 @@ import gevent
 import json
 import logging
 import requests
-import struct
 import uuid
 
-from blobdb import BlobDB
+from libpebble2.protocol.blobdb import *
+from libpebble2.protocol.timeline import *
+
 from model import TimelineItem, TimelineActionSet
 from attributes import TimelineAttributeSet
 
@@ -17,18 +18,14 @@ class ActionHandler(object):
         self.timeline = timeline
         self.pebble = pebble
         self.logger = logging.getLogger("pypkjs.timeline.actions")
-        self.pebble.pebble.register_endpoint('TIMELINE_ACTION', self.handle_action, preprocess=False)
+        self.pebble.pebble.register_endpoint(TimelineActionEndpoint, self.handle_action)
 
-    def handle_action(self, endpoint, message):
+    def handle_action(self, packet):
         self.logger.debug('handling timeline action')
-        command, = struct.unpack('<B', message[0])
-        self.logger.debug("command: %s", command)
-        # "invoke" is the only message we should ever receive.
-        if command != 0x02:
-            return
+        assert isinstance(packet.data, InvokeAction)
 
-        item_id_bytes, action_id, num_attributes = struct.unpack_from("<16sBB", message, 1)
-        item_id = str(uuid.UUID(bytes=item_id_bytes))
+        item_id = str(packet.data.item_id)
+        action_id = packet.data.action_id
         self.logger.debug("item_id: %s, action_id: %s", item_id, action_id)
         try:
             item = TimelineItem.get(TimelineItem.uuid == item_id)
@@ -65,9 +62,9 @@ class ActionHandler(object):
     def handle_remove(self, item, action):
         item.deleted = True
         item.save()
-        self.pebble.blobdb.delete(BlobDB.DB_PIN, item.uuid)
+        self.pebble.blobdb.delete(BlobDatabaseID.Pin, item.uuid)
         for child in TimelineItem.select().where((TimelineItem.parent == item.uuid) & (TimelineItem.type == 'notification')):
-            self.pebble.blobdb.delete(BlobDB.DB_NOTIFICATION, child.uuid)
+            self.pebble.blobdb.delete(BlobDatabaseID.Notification, child.uuid)
             child.deleted = True
             child.save()
         return True, {'subtitle': 'Removed', 'largeIcon': 'system://images/RESULT_DELETED'}
@@ -110,13 +107,8 @@ class ActionHandler(object):
         if attributes is None:
             attributes = {}
         attribute_set = TimelineAttributeSet(attributes, self.timeline.fw_map)
-        attribute_count, serialised = attribute_set.serialise()
-        response = struct.pack(
-            "<B16sBB",
-            0x11,
-            uuid.UUID(item_id).bytes,
-            int(not success),
-            attribute_count
-        ) + serialised
+        attribute_list = attribute_set.serialise()
+        response = TimelineActionEndpoint(data=ActionResponse(item_id=uuid.UUID(item_id), response=int(not success),
+                                                              attributes=attribute_list)).serialise()
         self.logger.debug("Serialised action response: %s", response.encode('hex'))
         self.pebble.pebble._send_message("TIMELINE_ACTION", response)

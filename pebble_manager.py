@@ -1,81 +1,74 @@
 __author__ = 'katharine'
 
+import gevent
 import logging
-import re
-import struct
-from uuid import UUID
 
-from pebblecomm import Pebble
-from timeline.blobdb import BlobDB
+from libpebble2.communication import PebbleConnection
+from libpebble2.communication.transports.qemu import QemuTransport
+from libpebble2.events.threaded import ThreadedEventHandler
+from libpebble2.protocol.apps import *
+from libpebble2.services.blobdb import BlobDBClient
 
 logger = logging.getLogger("pypkjs.pebble_manager")
 
 
 class PebbleManager(object):
     def __init__(self, qemu):
-        self.qemu = qemu
-        self.pebble = Pebble()
+        self.qemu = qemu.split(':')
+        print self.qemu
+        self.pebble = PebbleConnection(QemuTransport(*self.qemu), ThreadedEventHandler)
         self.handle_start = None
         self.handle_stop = None
         self.blobdb = None
-        self.watch_version_info = None
-        self.watch_fw_version = None
 
     def connect(self):
+        self.pebble.connect()
+        thing = gevent.spawn(self._pump_pebble)
         self.register_endpoints()
-        self.pebble.connect_via_qemu(self.qemu)
-        self.pebble.emu_bluetooth_connection(True)
-        self.determine_version_info()
-        self.blobdb = BlobDB(self.pebble)
-        self.blobdb.run()
+        # self.pebble.emu_bluetooth_connection(True)
+        self.blobdb = BlobDBClient(self.pebble, ThreadedEventHandler)
         self.request_running_app()
         logger.info('connected to %s', self.qemu)
+        return thing
+
+    def _pump_pebble(self):
+        while True:
+            self.pebble.pump_reader()
 
     def disconnect(self):
-        self.pebble.disconnect()
+        pass
 
     def register_endpoints(self):
-        self.pebble.register_endpoint("APPLICATION_LIFECYCLE", self.handle_lifecycle, preprocess=False)
-        self.pebble.register_endpoint("LAUNCHER", self.handle_launcher, preprocess=False)
-
-    def determine_version_info(self):
-        self.watch_version_info = self.pebble.get_versions()
-        
-        version_str = self.watch_version_info['normal_fw']['version'][1:]
-        pieces = re.split(r"[.-]", version_str)
-        self.watch_fw_version = [int(pieces[0]), int(pieces[1])] 
+        self.pebble.register_endpoint(AppRunState, self.handle_lifecycle)
+        # self.pebble.register_endpoint("LAUNCHER", self.handle_launcher, preprocess=False)
     
     def request_running_app(self):
-        # This is an appmessage with a null UUID and dictionary {2: 1} with a uint8 value.
-        self.pebble._send_message("LAUNCHER", "\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x00\x00\x00\x02\x01\x00\x01")
+        self.pebble.send_packet(AppRunState(data=AppRunStateRequest()))
 
-    def handle_lifecycle(self, endpoint, data):
-        state, = struct.unpack_from('<B', data, 0)
-        uuid = UUID(bytes=data[1:])
-        logger.debug("received lifecycle message for %s: %s", uuid, state)
-        if state == 0x01:  # running
+    def handle_lifecycle(self, packet):
+        if isinstance(packet.data, AppRunStateStart):
             if callable(self.handle_start):
-                self.handle_start(uuid)
-        elif state == 0x02:  # not running
+                self.handle_start(packet.data.uuid)
+        elif isinstance(packet.data, AppRunStateStop):
             if callable(self.handle_stop):
-                self.handle_stop(uuid)
+                self.handle_stop(packet.data.uuid)
 
-    def handle_launcher(self, endpoint, data):
-        # World's laziest appmessage parser
-        if data[0] != '\x01':  # ignore anything other than pushed data.
-            return
-        uuid = UUID(bytes=data[2:18])
-        state, = struct.unpack('<B', data[26])
-        # we should ack it
-        self.pebble._send_message("LAUNCHER", "\xff" + data[1])
-        if state == 0x01:  # running
-            if callable(self.handle_start):
-                self.handle_start(uuid)
-        elif state == 0x00:  # not running
-            if callable(self.handle_stop):
-                self.handle_stop(uuid)
+    # def handle_launcher(self, endpoint, data):
+    #     # World's laziest appmessage parser
+    #     if data[0] != '\x01':  # ignore anything other than pushed data.
+    #         return
+    #     uuid = UUID(bytes=data[2:18])
+    #     state, = struct.unpack('<B', data[26])
+    #     # we should ack it
+    #     self.pebble._send_message("LAUNCHER", "\xff" + data[1])
+    #     if state == 0x01:  # running
+    #         if callable(self.handle_start):
+    #             self.handle_start(uuid)
+    #     elif state == 0x00:  # not running
+    #         if callable(self.handle_stop):
+    #             self.handle_stop(uuid)
     
     @property
     def timeline_is_supported(self):
-        return self.watch_fw_version[0] >= 3
+        return self.pebble.firmware_version.major >= 3
 

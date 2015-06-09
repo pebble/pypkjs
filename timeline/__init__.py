@@ -9,8 +9,9 @@ import logging
 import requests
 import traceback
 
+from libpebble2.protocol.blobdb import *
+
 from actions import ActionHandler
-from blobdb import BlobDB
 import model
 from model import TimelineItem, TimelineState, TimelineSubscription, PinTopic
 from websync import TimelineWebSync
@@ -111,7 +112,7 @@ class PebbleTimeline(object):
             # This is okay as long as we don't reinsert reminders that already passed.
             for reminder in TimelineItem.select().where((TimelineItem.parent == pin_item.uuid) & (TimelineItem.type == 'reminder')):
                 if reminder.has_sent:
-                    self.runner.pebble.blobdb.delete(BlobDB.DB_REMINDER, reminder.uuid)
+                    self.runner.pebble.blobdb.delete(BlobDatabaseID.Reminder, reminder.uuid)
                 reminder.delete_instance()
 
         next_notification = pin_item.get_notification_to_display(pin, preexisting=pin_item.exists())
@@ -135,9 +136,9 @@ class PebbleTimeline(object):
 
     def handle_pin_delete(self, pin):
         types = {
-            'pin': BlobDB.DB_PIN,
-            'notification': BlobDB.DB_NOTIFICATION,
-            'reminder': BlobDB.DB_REMINDER,
+            'pin': BlobDatabaseID.Pin,
+            'notification': BlobDatabaseID.Notification,
+            'reminder': BlobDatabaseID.Reminder,
         }
 
         pin_uuid = pin['guid']
@@ -145,7 +146,7 @@ class PebbleTimeline(object):
             pin = TimelineItem.get(TimelineItem.uuid == pin_uuid)
         except TimelineItem.DoesNotExist:
             return
-        self.runner.pebble.blobdb.delete(BlobDB.DB_PIN, pin_uuid)
+        self.runner.pebble.blobdb.delete(BlobDatabaseID.Pin, pin_uuid)
         pin.deleted = True
         pin.save()
         for child in pin.children:
@@ -169,11 +170,11 @@ class PebbleTimeline(object):
                     self.logger.error("Inconsistency error; failed to find pin that should exist.")
                 else:
                     if pin.has_sent and not pin.deleted:
-                        self.runner.pebble.blobdb.delete(BlobDB.DB_PIN, pin_id)
+                        self.runner.pebble.blobdb.delete(BlobDatabaseID.Pin, pin_id)
 
                 for reminder in TimelineItem.select().where((TimelineItem.parent == pin_id) & (TimelineItem.type == 'reminder')):
                     if reminder.has_sent and not reminder.deleted:
-                        self.runner.pebble.blobdb.delete(BlobDB.DB_REMINDER, reminder.uuid)
+                        self.runner.pebble.blobdb.delete(BlobDatabaseID.Reminder, reminder.uuid)
 
                 TimelineItem.delete().where((TimelineItem.uuid == pin_id) | (TimelineItem.parent == pin_id)).execute()
             TimelineSubscription.delete().where(TimelineSubscription.topic == topic_key).execute()
@@ -192,9 +193,9 @@ class PebbleTimeline(object):
 
     def _send(self, item):
         types = {
-            'pin': BlobDB.DB_PIN,
-            'notification': BlobDB.DB_NOTIFICATION,
-            'reminder': BlobDB.DB_REMINDER,
+            'pin': BlobDatabaseID.Pin,
+            'notification': BlobDatabaseID.Notification,
+            'reminder': BlobDatabaseID.Reminder,
         }
 
         if not item.sendable:
@@ -264,6 +265,6 @@ class PebbleTimeline(object):
             item.has_sent = True
             item.save(only=[TimelineItem.has_sent])
         else:
-            self.logger.warning("Timeline item insert failed: %s", BlobDB.stringify_error_code(status))
+            self.logger.warning("Timeline item insert failed: %s", status)
             item.rejected = True
             item.save(only=[TimelineItem.rejected])

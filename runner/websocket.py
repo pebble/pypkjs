@@ -11,6 +11,10 @@ import struct
 import tempfile
 import traceback
 
+from libpebble2.communication.transports.qemu import QemuMessageTarget
+from libpebble2.events.threaded import ThreadedEventHandler
+from libpebble2.services.install import AppInstaller
+
 from runner import Runner
 
 
@@ -51,7 +55,8 @@ class WebsocketRunner(Runner):
 
     def run(self):
         self.pebble.connect()
-        self.patch_pebble()
+        self.pebble.pebble.register_raw_inbound_handler(self._handle_inbound)
+        self.pebble.pebble.register_raw_outbound_handler(self._handle_outbound)
         if self.pebble.timeline_is_supported:
             self.timeline.continuous_sync()
             self.timeline.do_maintenance()
@@ -76,22 +81,11 @@ class WebsocketRunner(Runner):
         self.broadcast(bytearray(struct.pack('>BBI%ds' % len(url), 0x0a, 0x01, len(url), url)))
         self.config_callback = callback
 
-    # evil monkeypatch
-    def patch_pebble(self):
-        real_write = self.pebble.pebble._ser.write
-        def echoing_write(message, **kwargs):
-            real_write(message, **kwargs)
-            if 'protocol' not in kwargs:
-                self.broadcast(bytearray('\x01' + message))
-        self.pebble.pebble._ser.write = echoing_write
+    def _handle_outbound(self, message):
+        self.broadcast(bytearray('\x01' + message))
 
-        real_read = self.pebble.pebble._ser.read
-        def echoing_read():
-            source, protocol, data, data_again = real_read()
-            if source == 'watch':
-                self.broadcast(bytearray('\x00' + data))
-            return source, protocol, data, data_again
-        self.pebble.pebble._ser.read = echoing_read
+    def _handle_inbound(self, message):
+        self.broadcast(bytearray('\x00' + message))
 
     def handle_ws(self, environ, start_response):
         if environ['PATH_INFO'] == '/':
@@ -162,7 +156,7 @@ class WebsocketRunner(Runner):
 
     @must_auth
     def do_relay(self, ws, message):
-        self.pebble.pebble._ser.write(str(message))
+        self.pebble.pebble.send_raw(str(message))
 
     @must_auth
     def do_install(self, ws, message):
@@ -172,7 +166,8 @@ class WebsocketRunner(Runner):
                 f.flush()
                 try:
                     self.load_pbws([f.name], cache=True)
-                    self.pebble.pebble.install_app_pebble_protocol(f.name)
+                    AppInstaller(self.pebble.pebble, ThreadedEventHandler, f.name,
+                                 blobdb_client=self.pebble.blobdb).install()
                 except:
                     try:
                         ws.send(bytearray([0x05, 0x00, 0x00, 0x00, 0x01]))
@@ -205,7 +200,8 @@ class WebsocketRunner(Runner):
     @must_auth
     def do_qemu_command(self, ws, message):
         protocol = message[0]
-        self.pebble.pebble._ser.write(str(message[1:]), protocol=protocol)
+        self.pebble.pebble.transport.send_packet(str(message[1:]),
+                                                 target=QemuMessageTarget(protocol=protocol, raw=True))
 
     @must_auth
     def do_timeline_command(self, ws, message):

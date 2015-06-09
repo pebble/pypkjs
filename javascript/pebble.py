@@ -1,5 +1,6 @@
 __author__ = 'katharine'
 
+from array import array
 import collections
 import logging
 import requests
@@ -10,7 +11,12 @@ from uuid import UUID
 import urllib
 
 import PyV8 as v8
-from pebblecomm.pebble import AppMessage, Notification, Attribute, PebbleHardware
+from libpebble2.events.threaded import ThreadedEventHandler
+from libpebble2.protocol.appmessage import AppMessage
+from libpebble2.protocol.system import Model
+from libpebble2.services.notifications import Notifications
+from libpebble2.services.appmessage import *
+from libpebble2.util.hardware import PebbleHardware
 
 import events
 from exceptions import JSRuntimeException
@@ -34,6 +40,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             this.platform = 'pypkjs';
         })();
         """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
+        self.blobdb = pebble.blobdb
         self.pebble = pebble.pebble
         self.runtime = runtime
         self.tid = 0
@@ -42,87 +49,65 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         self.pending_acks = {}
         self.is_ready = False
         self._timeline_token = None
+        self._appmessage = AppMessageService(self.pebble, ThreadedEventHandler)
         super(Pebble, self).__init__(runtime)
 
     def _connect(self):
         self._ready()
 
     def _ready(self):
-        self.pebble.register_endpoint("APPLICATION_MESSAGE", self._handle_appmessage, preprocess=False)
         self.is_ready = True
+        self._appmessage.register_handler("ack", self._handle_ack)
+        self._appmessage.register_handler("nack", self._handle_nack)
+        self._appmessage.register_handler("appmessage", self._handle_message)
         self.triggerEvent("ready")
 
     def _shutdown(self):
-        self.pebble.unregister_endpoint("APPLICATION_MESSAGE", self._handle_appmessage, preprocess=False)
+        self._appmessage.shutdown()
 
     def _configure(self):
         self.triggerEvent("showConfiguration")
 
-    def _handle_appmessage(self, endpoint, data):
-        command, tid = struct.unpack_from("BB", data, 0)
-        if command in (0x7f, 0xff):
-            self._handle_ack(command, tid)
-        elif command == 0x01:
-            target_uuid = UUID(bytes=data[2:18])
-            self._handle_message(tid, target_uuid, data[18:])
+    def _handle_ack(self, tid, app_uuid):
+        self._handle_response(tid, True)
 
-    def _handle_ack(self, command, tid):
+    def _handle_nack(self, tid, app_uuid):
+        self._handle_response(tid, False)
+
+    def _handle_response(self, tid, did_succeed):
         try:
             success, failure = self.pending_acks[tid]
         except KeyError:
             return
         callback_param = {"data": {"transactionId": tid}}
-        if command == 0x7f:  # NACK
-            callback_param['data']['error'] = 'Something went wrong.'
+        if did_succeed:
+            if callable(failure):
+                self.runtime.enqueue(success, callback_param)
+        else:
             if callable(failure):
                 self.runtime.enqueue(failure, callback_param)
-        elif command == 0xff:  # ACK
-            if callable(success):
-                self.runtime.enqueue(success, callback_param)
         del self.pending_acks[tid]
 
-    def _handle_message(self, tid, uuid, encoded_dict):
+    def _handle_message(self, tid, uuid, dictionary):
         if uuid != self.uuid:
             logger.warning("Discarded message for %s (expected %s)", uuid, self.uuid)
             self.pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0x7F, tid))  # ACK
             return
+
         app_keys = dict(zip(self.app_keys.values(), self.app_keys.keys()))
-        try:
-            tuple_count, = struct.unpack_from('<B', encoded_dict, 0)
-            offset = 1
-            d = self.runtime.context.eval("({})")  # This is kinda absurd.
-            for i in xrange(tuple_count):
-                k, t, l = struct.unpack_from('<IBH', encoded_dict, offset)
-                offset += 7
-                if t == 0:  # BYTE_ARRAY
-                    v = v8.JSArray(list(struct.unpack_from('<%dB' % l, encoded_dict, offset)))
-                elif t == 1:  # CSTRING
-                    v, = struct.unpack_from('<%ds' % l, encoded_dict, offset)
-                    try:
-                        v = v[:v.index('\x00')]
-                    except ValueError:
-                        pass
-                elif t in (2, 3):  # UINT, INT
-                    widths = {
-                        (2, 1): 'B',
-                        (2, 2): 'H',
-                        (2, 4): 'I',
-                        (3, 1): 'b',
-                        (3, 2): 'h',
-                        (3, 4): 'i',
-                    }
-                    v, = struct.unpack_from('<%s' % widths[(t, l)], encoded_dict, offset)
-                else:
-                    raise Exception("Received bad appmessage dict.")
-                d[str(k)] = v
-                if k in app_keys:
-                    d[str(app_keys[k])] = v
-                offset += l
-        except:
-            self.pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0x7F, tid))  # NACK
-            raise
-        else:
-            self.pebble._send_message("APPLICATION_MESSAGE", struct.pack('<BB', 0xFF, tid))  # ACK
+        d = self.runtime.context.eval("({})")  # This is kinda absurd.
+        for k, v in dictionary.iteritems():
+            if isinstance(v, int):
+                value = v
+            elif isinstance(v, basestring):
+                value = v
+            elif isinstance(v, array):
+                value = v8.JSArray(v.tolist())
+            else:
+                raise JSRuntimeException("?????")
+            d[str(k)] = value
+            if k in app_keys:
+                d[str(app_keys[k])] = value
             e = events.Event(self.runtime, "AppMessage")
             e.payload = d
             self.triggerEvent("appmessage", e)
@@ -143,55 +128,47 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             except ValueError:
                 raise JSRuntimeException("Unknown message key '%s'" % k)
 
-        tuples = []
+        d = {}
         appmessage = AppMessage()
         for k, v in to_send.iteritems():
             if isinstance(v, v8.JSArray):
-                v = list(v)
+                v = ByteArray(list(v))
             if isinstance(v, basestring):
-                t = "CSTRING"
-                v += '\x00'
+                v = CString(v)
             elif isinstance(v, int):
-                t = "INT"
-                v = struct.pack('<i', v)
+                v = Int32(v)
             elif isinstance(v, float):  # thanks, javascript
-                t = "INT"
                 try:
                     intv = int(round(v))
                 except ValueError:
                     self.runtime.log_output("WARNING: illegal float value %s for appmessage key %s" % (v, k))
                     intv = 0
-                v = struct.pack('<i', intv)
+                v = Int32(intv)
             elif isinstance(v, collections.Sequence):
-                t = "BYTE_ARRAY"
-                fmt = ['<']
+                bytes = []
                 for byte in v:
                     if isinstance(byte, int):
                         if 0 <= byte <= 255:
-                            fmt.append('B')
+                            bytes.append(byte)
                         else:
                             raise JSRuntimeException("Bytes must be between 0 and 255 inclusive.")
                     elif isinstance(byte, str):  # This is intentionally not basestring; unicode won't work.
-                        fmt.append('%ss' % len(byte))
+                        bytes.extend(list(bytearray(byte)))
                     else:
                         raise JSRuntimeException("Unexpected value in byte array.")
-                v = struct.pack(''.join(fmt), *v)
+                v = ByteArray(array('B', v))
             elif v is None:
                 continue
             else:
                 raise JSRuntimeException("Invalid value data type for key %s: %s" % (k, type(v)))
-            tuples.append(appmessage.build_tuple(k, t, v))
+            d[k] = v
 
-        d = appmessage.build_dict(tuples)
-        message = appmessage.build_message(d, "PUSH", self.uuid.bytes, struct.pack('B', self.tid))
-        self.pending_acks[self.tid] = (success, failure)
-        self.tid = (self.tid + 1) % 256
-        self.pebble._send_message("APPLICATION_MESSAGE", message)
+        tid = self._appmessage.send_message(self.uuid, d)
+        self.pending_acks[tid] = (success, failure)
 
     def showSimpleNotificationOnPebble(self, title, message):
         self._check_ready()
-        notification = Notification(self.pebble, title, attributes=[Attribute("BODY", message)])
-        notification.send()
+        Notifications(self.pebble, self.blobdb).send_notification(title, message)
 
     def showNotificationOnPebble(self, opts):
         pass
@@ -281,27 +258,38 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         self.runtime.group.spawn(go)
 
     def getActiveWatchInfo(self):
-        watch_info = self.runtime.runner.pebble.watch_version_info
+        watch_info = self.pebble.watch_info
 
         js_object = self.runtime.context.eval("({})")
-        platform = PebbleHardware.hardware_platform(watch_info['normal_fw']['hardware_platform'])
+        platform = PebbleHardware.hardware_platform(watch_info.running.hardware_platform)
         js_object['platform'] = platform
-        model = self.pebble.request_model()  # Note: this could take a while.
-        if model is None:
-            model = 'qemu_platform_%s' % platform
+        model = self.pebble.watch_model  # Note: this could take a while.
+        model_map = {
+            Model.TintinBlack: "pebble_black",
+            Model.TintinRed: "pebble_red",
+            Model.TintinWhite: "pebble_white",
+            Model.TintinGrey: "pebble_gray",
+            Model.TintinOrange: "pebble_orange",
+            Model.TintinGreen: "pebble_green",
+            Model.TintinPink: "pebble_pink",
+            Model.TintinBlue: "pebble_blue",
+            Model.BiancaBlack: "pebble_steel_black",
+            Model.BiancaSilver: "pebble_steel_silver",
+            Model.SnowyWhite: "pebble_time_white",
+            Model.SnowyRed: "pebble_time_red",
+            Model.SnowyBlack: "pebble_time_black",
+        }
+        model = model_map.get(platform, 'qemu_platform_%s' % platform)
         js_object['model'] = model
-        js_object['language'] = 'en_US'  # TODO: Actually use a real value for this?
+        js_object['language'] = watch_info.language
         firmware_obj = self.runtime.context.eval("({})")
-        version_str = watch_info['normal_fw']['version'][1:]
-        number, suffix = version_str.split('-', 1)
-        number_parts = number.split('.')
-        firmware_obj['major'] = int(number_parts[0])
-        firmware_obj['minor'] = int(number_parts[1]) if len(number_parts) >= 2 else 0
-        firmware_obj['patch'] = int(number_parts[2]) if len(number_parts) >= 3 else 0
-        firmware_obj['suffix'] = suffix
+        fw_version = self.pebble.firmware_version
+        firmware_obj['major'] = fw_version.major
+        firmware_obj['minor'] = fw_version.major
+        firmware_obj['patch'] = fw_version.patch
+        firmware_obj['suffix'] = fw_version.suffix
         js_object['firmware'] = firmware_obj
         return js_object
-
 
     def _handle_config_response(self, response):
         def go():
