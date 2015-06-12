@@ -91,10 +91,16 @@ class ActionHandler(object):
                 response.raise_for_status()
             except requests.RequestException as e:
                 logging.warning("HTTP request failed: %s", e.message)
-                self.send_result(item.uuid, False, {'subtitle': "Failed", 'largeIcon': 'system://images/RESULT_FAILED'})
+                self.send_result(item.uuid, False, {
+                    'subtitle': action.get("failureText", "Failed!"),
+                    'largeIcon': action.get("failureIcon", "system://images/RESULT_FAILED")
+                })
             else:
                 logging.info("HTTP request succeeded.")
-                self.send_result(item.uuid, True, {})
+                self.send_result(item.uuid, True, {
+                    'subtitle': action.get("successText", "Done!"),
+                    'largeIcon': action.get("failureIcon", "system://images/GENERIC_CONFIRMATION")
+                })
 
         gevent.spawn(go)
 
