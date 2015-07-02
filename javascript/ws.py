@@ -4,6 +4,7 @@ from gevent import monkey; monkey.patch_all()
 import PyV8 as v8
 from exceptions import JSRuntimeException
 import events
+from gevent.greenlet import GreenletExit
 import struct
 import websocket
 
@@ -118,22 +119,27 @@ class WebSocket(events.EventSourceMixin):
         self.protocol = self.ws.subprotocol
         self.readyState = self.OPEN
         self.triggerEvent("open")
-        while self.ws.connected:
-            opcode, data = self.ws.recv_data()
-            if opcode == websocket.ABNF.OPCODE_TEXT:
-                self.handle_text(data)
-            elif opcode == websocket.ABNF.OPCODE_BINARY:
-                self.handle_binary(data)
-            elif opcode == websocket.ABNF.OPCODE_CLOSE:
-                # this is annoying.
-                if len(data) >= 2:
-                    close_code, = struct.unpack_from("!H", data, 0)
-                    reason = data[2:]
-                    self.handle_closed(close_code, reason)
+        try:
+            while self.ws.connected:
+                opcode, data = self.ws.recv_data()
+                if opcode == websocket.ABNF.OPCODE_TEXT:
+                    self.handle_text(data)
+                elif opcode == websocket.ABNF.OPCODE_BINARY:
+                    self.handle_binary(data)
+                elif opcode == websocket.ABNF.OPCODE_CLOSE:
+                    # this is annoying.
+                    if len(data) >= 2:
+                        close_code, = struct.unpack_from("!H", data, 0)
+                        reason = data[2:]
+                        self.handle_closed(close_code, reason)
+                    else:
+                        self.handle_closed()
                 else:
-                    self.handle_closed()
-            else:
-                continue
+                    continue
+        except GreenletExit:
+            if self.ws is not None and self.ws.connected:
+                self.ws.close()
+            raise
 
     def handle_text(self, data):
         def go():
