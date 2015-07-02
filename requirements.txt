@@ -11,4 +11,4 @@ sh==1.09
 six==1.8.0
 websocket-client==0.22.0
 wsgiref==0.1.2
-git+ssh://git@github.com/pebble/libpebble2.git@85f5143
+git+ssh://git@github.com/pebble/libpebble2.git@7818854

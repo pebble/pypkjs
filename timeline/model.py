@@ -10,7 +10,7 @@ import datetime
 import calendar
 import struct
 
-from libpebble2.protocol.timeline import *
+from libpebble2.protocol.timeline import TimelineItem as TimelineItemBlob, TimelineAction
 
 from attributes import TimelineAttributeSet
 
@@ -177,16 +177,16 @@ class TimelineItem(BaseModel):
 
     def serialise(self, fw_mapping):
         type_map = {
-            'notification': TimelineItem.Type.Notification,
-            'pin': TimelineItem.Type.Pin,
-            'reminder': TimelineItem.Type.Reminder,
+            'notification': TimelineItemBlob.Type.Notification,
+            'pin': TimelineItemBlob.Type.Pin,
+            'reminder': TimelineItemBlob.Type.Reminder,
         }
         layout = TimelineAttributeSet(self.layout, fw_mapping)
         serialised_layout = layout.serialise()
-        actions = TimelineActionSet(self)
+        actions = TimelineActionSet(self, fw_mapping)
         serialised_actions = actions.serialise()
 
-        TimelineItem(
+        return TimelineItemBlob(
             item_id=uuid.UUID(self.uuid),
             parent_id=uuid.UUID(self.parent),
             timestamp=calendar.timegm(self.start_time.utctimetuple()),
@@ -196,7 +196,7 @@ class TimelineItem(BaseModel):
             layout=fw_mapping['layouts'][self.layout['type']],
             attributes=serialised_layout,
             actions=serialised_actions
-        )
+        ).serialise()
 
     def update_topics(self, topics):
         with db.atomic():
@@ -275,7 +275,8 @@ class TimelineActionSet(object):
         'http': TimelineAction.Type.Generic,
     }
 
-    def __init__(self, pin):
+    def __init__(self, pin, fw_map):
+        self.fw_map = fw_map
         self.pin = pin
 
     def get_actions(self):
@@ -286,7 +287,7 @@ class TimelineActionSet(object):
         for action_id, action in enumerate(self.get_actions()):
             action_type = self.ACTION_TYPES[action['type']]
             action = TimelineAction(action_id=action_id, type=action_type,
-                                    attributes=TimelineAttributeSet(action).serialise())
+                                    attributes=TimelineAttributeSet(action, self.fw_map).serialise())
             serialised.append(action)
 
         return serialised
