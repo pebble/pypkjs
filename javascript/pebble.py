@@ -11,7 +11,6 @@ from uuid import UUID
 import urllib
 
 import PyV8 as v8
-from libpebble2.events.threaded import ThreadedEventHandler
 from libpebble2.protocol.appmessage import AppMessage
 from libpebble2.protocol.system import Model
 from libpebble2.services.notifications import Notifications
@@ -49,7 +48,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         self.pending_acks = {}
         self.is_ready = False
         self._timeline_token = None
-        self._appmessage = AppMessageService(self.pebble, ThreadedEventHandler)
+        self._appmessage = AppMessageService(self.pebble)
         super(Pebble, self).__init__(runtime)
 
     def _connect(self):

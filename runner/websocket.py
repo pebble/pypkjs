@@ -12,7 +12,6 @@ import tempfile
 import traceback
 
 from libpebble2.communication.transports.qemu import QemuMessageTarget
-from libpebble2.events.threaded import ThreadedEventHandler
 from libpebble2.services.install import AppInstaller
 
 from runner import Runner
@@ -166,8 +165,7 @@ class WebsocketRunner(Runner):
                 f.flush()
                 try:
                     self.load_pbws([f.name], cache=True)
-                    AppInstaller(self.pebble.pebble, ThreadedEventHandler, f.name,
-                                 blobdb_client=self.pebble.blobdb).install()
+                    AppInstaller(self.pebble.pebble, f.name, blobdb_client=self.pebble.blobdb).install()
                 except:
                     try:
                         ws.send(bytearray([0x05, 0x00, 0x00, 0x00, 0x01]))

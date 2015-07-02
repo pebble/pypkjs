@@ -5,7 +5,6 @@ import logging
 
 from libpebble2.communication import PebbleConnection
 from libpebble2.communication.transports.qemu import QemuTransport
-from libpebble2.events.threaded import ThreadedEventHandler
 from libpebble2.protocol.apps import *
 from libpebble2.services.blobdb import BlobDBClient
 
@@ -26,7 +25,7 @@ class PebbleManager(object):
         thing = gevent.spawn(self._pump_pebble)
         self.register_endpoints()
         # self.pebble.emu_bluetooth_connection(True)
-        self.blobdb = BlobDBClient(self.pebble, ThreadedEventHandler)
+        self.blobdb = BlobDBClient(self.pebble)
         self.request_running_app()
         logger.info('connected to %s', self.qemu)
         return thing
