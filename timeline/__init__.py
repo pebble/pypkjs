@@ -80,7 +80,7 @@ class PebbleTimeline(object):
         if update_type in update_handlers:
             update_handlers[update_type](pin)
 
-    def handle_resync(self, update_type, bin):
+    def handle_resync(self, pin):
         for item in TimelineItem.select().where(TimelineItem.source_kind == 'web'):
             with model.db.atomic():
                 item_id = item.uuid
