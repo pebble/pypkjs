@@ -29,7 +29,6 @@ class TimelineAttributeSet(object):
             except KeyError:
                 logger.warning("skipping unknown attribute '%s'", key)
                 continue
-            print key
             converted = self.convert_type(attribute_info, value)
             if converted is None:
                 logger.warning("Couldn't convert '%s' value '%s'", key, value)
