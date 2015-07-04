@@ -4,7 +4,7 @@ import gevent
 import logging
 
 from libpebble2.communication import PebbleConnection
-from libpebble2.communication.transports.qemu import QemuTransport, QemuMessageTarget
+from libpebble2.communication.transports.qemu import QemuTransport, MessageTargetQemu
 from libpebble2.communication.transports.qemu.protocol import QemuBluetoothConnection
 from libpebble2.protocol.apps import *
 from libpebble2.services.blobdb import BlobDBClient
@@ -26,7 +26,7 @@ class PebbleManager(object):
         greenlet = gevent.spawn(self.pebble.run_sync)
         self.pebble.fetch_watch_info()
         self.register_endpoints()
-        self.pebble.transport.send_packet(QemuBluetoothConnection(connected=True), target=QemuMessageTarget())
+        self.pebble.transport.send_packet(QemuBluetoothConnection(connected=True), target=MessageTargetQemu())
         self.blobdb = BlobDBClient(self.pebble)
         self.request_running_app()
         logger.info('connected to %s', self.qemu)

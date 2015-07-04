@@ -11,7 +11,7 @@ import struct
 import tempfile
 import traceback
 
-from libpebble2.communication.transports.qemu import QemuMessageTarget
+from libpebble2.communication.transports.qemu import MessageTargetQemu
 from libpebble2.services.install import AppInstaller
 
 from runner import Runner
@@ -199,7 +199,7 @@ class WebsocketRunner(Runner):
     def do_qemu_command(self, ws, message):
         protocol = message[0]
         self.pebble.pebble.transport.send_packet(str(message[1:]),
-                                                 target=QemuMessageTarget(protocol=protocol, raw=True))
+                                                 target=MessageTargetQemu(protocol=protocol, raw=True))
 
     @must_auth
     def do_timeline_command(self, ws, message):
