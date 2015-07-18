@@ -100,8 +100,8 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                 value = v
             elif isinstance(v, basestring):
                 value = v
-            elif isinstance(v, array):
-                value = v8.JSArray(v.tolist())
+            elif isinstance(v, bytearray):
+                value = v8.JSArray(list(v))
             else:
                 raise JSRuntimeException("?????")
             d[str(k)] = value
