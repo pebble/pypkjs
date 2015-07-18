@@ -53,7 +53,7 @@ class WebsocketRunner(Runner):
         super(WebsocketRunner, self).__init__(qemu, pbws, persist_dir=persist_dir, oauth_token=oauth_token, layout_file=layout_file)
 
     def run(self):
-        self.pebble.connect()
+        pebble_greenlet = self.pebble.connect()
         self.pebble.pebble.register_raw_inbound_handler(self._handle_inbound)
         self.pebble.pebble.register_raw_outbound_handler(self._handle_outbound)
         if self.pebble.timeline_is_supported:
@@ -70,7 +70,9 @@ class WebsocketRunner(Runner):
         else:
             ssl_args = {}
         self.server = pywsgi.WSGIServer(("", self.port), self.handle_ws, handler_class=WebSocketHandler, **ssl_args)
-        self.server.serve_forever()
+        gevent.spawn(self.server.serve_forever)
+        pebble_greenlet.join()
+        self.server.close()
         self.pebble.disconnect()
 
     def log_output(self, message):
