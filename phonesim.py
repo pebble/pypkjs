@@ -21,6 +21,7 @@ if __name__ == "__main__":
     parser.add_argument('pbws', nargs='*', help="Set of pbws.")
     args = parser.parse_args()
     print args
+    logging.basicConfig()
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
     else:
