@@ -29,7 +29,7 @@ class ActionHandler(object):
         self.logger.debug("item_id: %s, action_id: %s", item_id, action_id)
         try:
             item = TimelineItem.get(TimelineItem.uuid == item_id)
-            actions = TimelineActionSet(item)
+            actions = TimelineActionSet(item, self.timeline.fw_map)
             action = actions.get_actions()[action_id]
         except (TimelineItem.DoesNotExist, KeyError, IndexError):
             self.send_result(item_id, False, attributes={
@@ -62,9 +62,10 @@ class ActionHandler(object):
     def handle_remove(self, item, action):
         item.deleted = True
         item.save()
-        self.pebble.blobdb.delete(BlobDatabaseID.Pin, item.uuid)
-        for child in TimelineItem.select().where((TimelineItem.parent == item.uuid) & (TimelineItem.type == 'notification')):
-            self.pebble.blobdb.delete(BlobDatabaseID.Notification, child.uuid)
+        self.pebble.blobdb.delete(BlobDatabaseID.Pin, uuid.UUID(item.uuid))
+        for child in TimelineItem.select().where((TimelineItem.parent == item.uuid) &
+                                                 (TimelineItem.type == 'notification')):
+            self.pebble.blobdb.delete(BlobDatabaseID.Notification, uuid.UUID(child.uuid))
             child.deleted = True
             child.save()
         return True, {'subtitle': 'Removed', 'largeIcon': 'system://images/RESULT_DELETED'}
@@ -115,6 +116,6 @@ class ActionHandler(object):
         attribute_set = TimelineAttributeSet(attributes, self.timeline.fw_map)
         attribute_list = attribute_set.serialise()
         response = TimelineActionEndpoint(data=ActionResponse(item_id=uuid.UUID(item_id), response=int(not success),
-                                                              attributes=attribute_list)).serialise()
-        self.logger.debug("Serialised action response: %s", response.encode('hex'))
-        self.pebble.pebble._send_message("TIMELINE_ACTION", response)
+                                                              attributes=attribute_list))
+        self.logger.debug("Serialised action response: %s", response.serialise().encode('hex'))
+        self.pebble.pebble.send_packet(response)
