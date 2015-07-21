@@ -131,7 +131,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         appmessage = AppMessage()
         for k, v in to_send.iteritems():
             if isinstance(v, v8.JSArray):
-                v = ByteArray(list(v))
+                v = list(v)
             if isinstance(v, basestring):
                 v = CString(v)
             elif isinstance(v, int):
@@ -144,18 +144,18 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                     intv = 0
                 v = Int32(intv)
             elif isinstance(v, collections.Sequence):
-                bytes = []
+                b = bytearray()
                 for byte in v:
                     if isinstance(byte, int):
                         if 0 <= byte <= 255:
-                            bytes.append(byte)
+                            b.append(byte)
                         else:
                             raise JSRuntimeException("Bytes must be between 0 and 255 inclusive.")
                     elif isinstance(byte, str):  # This is intentionally not basestring; unicode won't work.
-                        bytes.extend(list(bytearray(byte)))
+                        b.extend(bytearray(byte))
                     else:
                         raise JSRuntimeException("Unexpected value in byte array.")
-                v = ByteArray(array('B', v))
+                v = ByteArray(bytes(b))
             elif v is None:
                 continue
             else:
