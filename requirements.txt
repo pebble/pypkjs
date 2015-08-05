@@ -11,4 +11,4 @@ sh==1.09
 six==1.8.0
 websocket-client==0.22.0
 wsgiref==0.1.2
-libpebble2>=0.0.7
+http://pypi.hq.getpebble.com:6161/packages/libpebble2-dev-0.0.7.tar.gz#version=0.0.7
