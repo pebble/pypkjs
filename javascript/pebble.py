@@ -107,9 +107,9 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             d[str(k)] = value
             if k in app_keys:
                 d[str(app_keys[k])] = value
-            e = events.Event(self.runtime, "AppMessage")
-            e.payload = d
-            self.triggerEvent("appmessage", e)
+        e = events.Event(self.runtime, "AppMessage")
+        e.payload = d
+        self.triggerEvent("appmessage", e)
 
     def _check_ready(self):
         if not self.is_ready:
