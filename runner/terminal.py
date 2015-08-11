@@ -16,7 +16,7 @@ class TerminalRunner(Runner):
         signal.signal(signal.SIGUSR1, self.handle_sigusr)
 
     def log_output(self, message):
-        print message
+        print message.encode('utf-8')
 
     def open_config_page(self, url, callback):
         port = self._find_port()

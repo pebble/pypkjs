@@ -14,7 +14,8 @@ class Console(object):
         """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
 
     def log(self, *params):
-        self.runtime.log_output(u' '.join([x.toString() if hasattr(x, 'toString') else unicode(x) for x in params]).encode('utf-8'))
+        self.runtime.log_output(u' '.join([x.toString().decode('utf-8') if hasattr(x, 'toString')
+                                           else bytes(x).decode('utf-8') for x in params]))
 
     def warn(self, *params):
         self.log(*params)
