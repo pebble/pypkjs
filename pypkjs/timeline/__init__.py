@@ -215,7 +215,7 @@ class PebbleTimeline(object):
             self.logger.info("in watch range; inserting.")
             self._pending_sends.add(item.uuid)
             try:
-                serialised = item.serialise(self.fw_map)
+                serialised = item.serialise(self)
             except:
                 traceback.print_exc()
                 self.logger.error("Serialisation of timeline item failed.")

@@ -176,15 +176,15 @@ class TimelineItem(BaseModel):
         except TimelineItem.DoesNotExist:
             return None
 
-    def serialise(self, fw_mapping):
+    def serialise(self, timeline):
         type_map = {
             'notification': TimelineItemBlob.Type.Notification,
             'pin': TimelineItemBlob.Type.Pin,
             'reminder': TimelineItemBlob.Type.Reminder,
         }
-        layout = TimelineAttributeSet(self.layout, fw_mapping)
+        layout = TimelineAttributeSet(self.layout, timeline, uuid.UUID(self.parent))
         serialised_layout = layout.serialise()
-        actions = TimelineActionSet(self, fw_mapping)
+        actions = TimelineActionSet(self, timeline, uuid.UUID(self.parent))
         serialised_actions = actions.serialise()
 
         return TimelineItemBlob(
@@ -194,7 +194,7 @@ class TimelineItem(BaseModel):
             duration=self.duration,
             type=type_map[self.type],
             flags=0,
-            layout=fw_mapping['layouts'][self.layout['type']],
+            layout=timeline.fw_map['layouts'][self.layout['type']],
             attributes=serialised_layout,
             actions=serialised_actions
         ).serialise()
@@ -276,8 +276,9 @@ class TimelineActionSet(object):
         'http': TimelineAction.Type.Generic,
     }
 
-    def __init__(self, pin, fw_map):
-        self.fw_map = fw_map
+    def __init__(self, pin, timeline, app_uuid):
+        self.timeline = timeline
+        self.app_uuid = app_uuid
         self.pin = pin
 
     def get_actions(self):
@@ -288,7 +289,8 @@ class TimelineActionSet(object):
         for action_id, action in enumerate(self.get_actions()):
             action_type = self.ACTION_TYPES[action['type']]
             action = TimelineAction(action_id=action_id, type=action_type,
-                                    attributes=TimelineAttributeSet(action, self.fw_map).serialise())
+                                    attributes=TimelineAttributeSet(action, self.timeline,
+                                                                    self.app_uuid).serialise())
             serialised.append(action)
 
         return serialised

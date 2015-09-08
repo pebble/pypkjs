@@ -15,9 +15,10 @@ logger = logging.getLogger('pypkjs.timeline.attributes')
 
 
 class TimelineAttributeSet(object):
-    def __init__(self, attributes, fw_mapping):
+    def __init__(self, attributes, timeline, app_uuid):
         self.attributes = attributes
-        self.fw_mapping = fw_mapping
+        self.timeline = timeline
+        self.app_uuid = app_uuid
 
     def serialise(self):
         serialised = []
@@ -26,7 +27,7 @@ class TimelineAttributeSet(object):
             if key == 'type':
                 continue
             try:
-                attribute_info = self.fw_mapping['attributes'][key]
+                attribute_info = self.timeline.fw_map['attributes'][key]
             except KeyError:
                 logger.warning("skipping unknown attribute '%s'", key)
                 continue
@@ -59,11 +60,15 @@ class TimelineAttributeSet(object):
     def _uri_lookup(self, value, attribute_info):
         url = urlparse.urlparse(value)
         if url.scheme == 'system':
-            if value in self.fw_mapping['resources']:
-                res_id = self.fw_mapping['resources'][value]
+            if value in self.timeline.fw_map['resources']:
+                res_id = self.timeline.fw_map['resources'][value]
                 logger.debug("got res_id %s (%s)", res_id, res_id | (1 << 31))
                 return struct.pack("<I", res_id | (1 << 31))
-        # We'll need to handle app resources here, when we know what they look like.
+        elif url.scheme == 'app':
+            resource_map = self.timeline.runner.timeline_mapping_for_app(self.app_uuid).get('resources', {})
+            if value in resource_map:
+                res_id = resource_map[value]
+                return struct.pack("<I", res_id)
         return None
 
     @staticmethod
