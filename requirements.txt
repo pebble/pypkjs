@@ -1,5 +1,5 @@
 backports.ssl-match-hostname==3.4.0.2
-gevent==1.0.2
+gevent>=1.1b5
 gevent-websocket==0.9.3
 greenlet==0.4.7
 peewee==2.4.7
