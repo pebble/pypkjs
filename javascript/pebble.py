@@ -133,6 +133,8 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             if isinstance(v, v8.JSArray):
                 v = list(v)
             if isinstance(v, basestring):
+                if not isinstance(v, unicode):
+                    v = v.decode('utf-8')
                 v = CString(v)
             elif isinstance(v, int):
                 v = Int32(v)
