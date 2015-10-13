@@ -12,6 +12,7 @@ import shutil
 import urlparse
 import urllib
 
+from libpebble2.services.appmessage import AppMessageService
 import javascript
 import javascript.runtime
 from pebble_manager import PebbleManager
@@ -29,6 +30,10 @@ class Runner(object):
         self.oauth_token = oauth_token
         self.pebble.handle_start = self.handle_start
         self.pebble.handle_stop = self.handle_stop
+        # PBL-26034: Due to PBL-24009 we must be sure to respond to appmessages received with no JS running.
+        # However, libpebble2 presently provides no way of NACKing. Making sure this exists is sufficient for
+        # ACKs, so we just create it and pass it off. We should add NACKs later, though.
+        self.appmessage = AppMessageService(self.pebble.pebble)
         self.pbws = {}
         self.logger = logging.getLogger("pypkjs")
         self.running_uuid = None

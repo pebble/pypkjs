@@ -48,7 +48,8 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         self.pending_acks = {}
         self.is_ready = False
         self._timeline_token = None
-        self._appmessage = AppMessageService(self.pebble)
+        self._appmessage = self.runtime.runner.appmessage
+        self._appmessage_handlers = []
         super(Pebble, self).__init__(runtime)
 
     def _connect(self):
@@ -56,13 +57,16 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
 
     def _ready(self):
         self.is_ready = True
-        self._appmessage.register_handler("ack", self._handle_ack)
-        self._appmessage.register_handler("nack", self._handle_nack)
-        self._appmessage.register_handler("appmessage", self._handle_message)
+        self._appmessage_handlers = [
+            self._appmessage.register_handler("ack", self._handle_ack),
+            self._appmessage.register_handler("nack", self._handle_nack),
+            self._appmessage.register_handler("appmessage", self._handle_message),
+        ]
         self.triggerEvent("ready")
 
     def _shutdown(self):
-        self._appmessage.shutdown()
+        for handle in self._appmessage_handlers:
+            self._appmessage.unregister_handler(handle)
 
     def _configure(self):
         self.triggerEvent("showConfiguration")
