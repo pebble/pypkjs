@@ -1,11 +1,13 @@
 __author__ = 'katharine'
 
 from gevent import monkey; monkey.patch_all()
+
 import PyV8 as v8
 import requests
 import requests.exceptions
 import exceptions
 import events
+from safe_requests import NonlocalHTTPAdapter
 
 progress_event = v8.JSExtension("runtime/events/progress", """
 ProgressEvent = function(computable, loaded, total) {
@@ -94,6 +96,7 @@ class XMLHttpRequest(events.EventSourceMixin):
 
         super(XMLHttpRequest, self).__init__(runtime)
 
+
     def open(self, method, url, async=True, user=None, password=None):
         self._request = requests.Request(method, url)
         if user is not None:
@@ -145,7 +148,9 @@ class XMLHttpRequest(events.EventSourceMixin):
         except requests.exceptions.Timeout:
             self._trigger_async_event("timeout", ProgressEvent, (self._runtime,))
             self.readyState = self.DONE
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
+            self.status = 0
+            self.statusText = str(e)
             self.readyState = self.DONE
         finally:
             self._trigger_async_event("loadend", ProgressEvent, (self._runtime,))
@@ -193,4 +198,8 @@ class XMLHttpRequest(events.EventSourceMixin):
 
 def prepare_xhr(runtime):
     session = requests.Session()
+    if runtime.block_private_addresses:
+        adapter = NonlocalHTTPAdapter()
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
     return runtime.context.locals._init_xhr(runtime, session)

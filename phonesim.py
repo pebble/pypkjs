@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('--oauth', default=None, help="Pebble OAuth token.")
     parser.add_argument('--layout', default=None, help="Path to a firmware layout.json file on disk.")
     parser.add_argument('--debug', action='store_true', help="Very, very verbose debug spew.")
+    parser.add_argument('--block-private-addresses', action='store_true', help="Disable access to private IPs.")
     parser.add_argument('pbws', nargs='*', help="Set of pbws.")
     args = parser.parse_args()
     print args
@@ -27,5 +28,6 @@ if __name__ == "__main__":
     else:
         logging.getLogger().setLevel(logging.INFO)
     runner = WebsocketRunner(args.qemu,args.pbws, args.port, token=args.token, ssl_root=args.ssl_root,
-                             persist_dir=args.persist, oauth_token=args.oauth, layout_file=args.layout)
+                             persist_dir=args.persist, oauth_token=args.oauth, layout_file=args.layout,
+                             block_private_addresses=args.block_private_addresses)
     runner.run()

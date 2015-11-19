@@ -41,7 +41,7 @@ class Websocket(object):
 
 class WebsocketRunner(Runner):
     def __init__(self, qemu, pbws, port, token=None, ssl_root=None, persist_dir=None, oauth_token=None,
-                 layout_file=None):
+                 layout_file=None, block_private_addresses=False):
         self.port = port
         self.token = token
         self.requires_auth = (token is not None)
@@ -50,7 +50,8 @@ class WebsocketRunner(Runner):
         self.websockets = []
         self.ssl_root = ssl_root
         self.config_callback = None
-        super(WebsocketRunner, self).__init__(qemu, pbws, persist_dir=persist_dir, oauth_token=oauth_token, layout_file=layout_file)
+        super(WebsocketRunner, self).__init__(qemu, pbws, persist_dir=persist_dir, oauth_token=oauth_token,
+                                              layout_file=layout_file, block_private_addresses=block_private_addresses)
 
     def run(self):
         pebble_greenlet = self.pebble.connect()

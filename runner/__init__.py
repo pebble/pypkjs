@@ -23,7 +23,7 @@ import timeline.urls
 class Runner(object):
     PBW = collections.namedtuple('PBW', ('uuid', 'src', 'manifest'))
 
-    def __init__(self, qemu, pbws, persist_dir=None, oauth_token=None, layout_file=None):
+    def __init__(self, qemu, pbws, persist_dir=None, oauth_token=None, layout_file=None, block_private_addresses=False):
         self.qemu = qemu
         self.pebble = PebbleManager(qemu)
         self.persist_dir = persist_dir
@@ -40,6 +40,7 @@ class Runner(object):
         self.js = None
         self.urls = timeline.urls.URLManager()
         self.timeline = PebbleTimeline(self, persist=persist_dir, oauth=oauth_token, layout_file=layout_file)
+        self.block_private_addresses = block_private_addresses
         self.load_cached_pbws()
         self.load_pbws(pbws)
 
@@ -80,7 +81,8 @@ class Runner(object):
     def start_js(self, pbw):
         self.stop_js()
         self.running_uuid = pbw.uuid
-        self.js = javascript.runtime.JSRuntime(self.pebble, pbw.manifest, self, persist_dir=self.persist_dir)
+        self.js = javascript.runtime.JSRuntime(self.pebble, pbw.manifest, self, persist_dir=self.persist_dir,
+                                               block_private_addresses=self.block_private_addresses)
         self.js.log_output = lambda m: self.log_output(m)
         self.js.open_config_page = lambda url, callback: self.open_config_page(url, callback)
         gevent.spawn(self.js.run, pbw.src)

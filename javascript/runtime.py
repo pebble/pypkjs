@@ -38,7 +38,7 @@ make_proxy_extension = v8.JSExtension("runtime/internal/proxy", """
 
 
 class JSRuntime(object):
-    def __init__(self, qemu, manifest, runner, persist_dir=None):
+    def __init__(self, qemu, manifest, runner, persist_dir=None, block_private_addresses=False):
         self.group = gevent.pool.Group()
         self.queue = gevent.queue.Queue()
         self.qemu = qemu
@@ -46,6 +46,7 @@ class JSRuntime(object):
         self.runner = runner
         self.runtime_id = JSRuntime.runtimeCount
         self.persist_dir = persist_dir
+        self.block_private_addresses = block_private_addresses
         JSRuntime.runtimeCount += 1
 
     def setup(self):
