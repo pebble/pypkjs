@@ -21,9 +21,6 @@ requires = [
   'netaddr==0.7.18'
 ]
 
-packages = find_packages()
-print packages
-
 setup(name='pypkjs',
       version='3.6',
       description='PebbleKit JS in Python!',
@@ -31,11 +28,10 @@ setup(name='pypkjs',
       author='Pebble Technology Corporation',
       author_email='katharine@pebble.com',
       license='MIT',
-      packages=packages,
+      packages=find_packages(),
       install_requires=requires,
       entry_points={
           'console_scripts': [
             'pypkjs=runner.websocket:run_tool'
           ],
-      },
-      zip_safe=True)
+      })
