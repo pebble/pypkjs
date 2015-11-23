@@ -260,5 +260,4 @@ def run_tool():
     runner = WebsocketRunner(args.qemu,args.pbws, args.port, token=args.token, ssl_root=args.ssl_root,
                              persist_dir=args.persist, oauth_token=args.oauth, layout_file=args.layout,
                              block_private_addresses=args.block_private_addresses)
-    print args.pbws
     runner.run()
