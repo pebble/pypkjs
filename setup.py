@@ -34,4 +34,5 @@ setup(name='pypkjs',
           'console_scripts': [
             'pypkjs=runner.websocket:run_tool'
           ],
-      })
+      },
+      zip_safe=False)
