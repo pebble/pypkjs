@@ -18,6 +18,9 @@ setup(name='pypkjs',
       license='MIT',
       packages=find_packages(),
       install_requires=requirements,
+      package_data={
+          'javascript.navigator': 'GeoLiteCity.dat'
+      },
       entry_points={
           'console_scripts': [
             'pypkjs=runner.websocket:run_tool'
