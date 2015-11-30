@@ -3,11 +3,10 @@ __author__ = 'katharine'
 import os
 import sys
 from setuptools import setup, find_packages
+from pkg_resources import resource_string
 
-requirements_path = os.path.join(os.path.dirname(__file__), 'requirements.txt')
-
-with open(requirements_path) as requirements_file:
-  requirements = [line.strip() for line in requirements_file.readlines()]
+requirements_str = resource_string(__name__, 'requirements.txt')
+requirements = [line.strip() for line in requirements_str.splitlines()]
 
 setup(name='pypkjs',
       version='3.6',
