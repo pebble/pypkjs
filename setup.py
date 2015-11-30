@@ -19,7 +19,7 @@ setup(name='pypkjs',
       packages=find_packages(),
       install_requires=requirements,
       package_data={
-          'javascript.navigator': 'GeoLiteCity.dat'
+          'javascript.navigator': ['GeoLiteCity.dat']
       },
       entry_points={
           'console_scripts': [
