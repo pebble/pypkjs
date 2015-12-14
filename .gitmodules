@@ -1,3 +1,3 @@
 [submodule "PyV8"]
-	path = PyV8
+	path = pypkjs/PyV8
 	url = https://github.com/pebble/pyv8-prebuilt.git

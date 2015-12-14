@@ -24,7 +24,7 @@ setup(name='pypkjs',
       },
       entry_points={
           'console_scripts': [
-            'pypkjs=runner.websocket:run_tool'
+            'pypkjs=pypkjs.runner.websocket:run_tool'
           ],
       },
       zip_safe=False)
