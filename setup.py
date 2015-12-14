@@ -1,7 +1,5 @@
 __author__ = 'katharine'
 
-import os
-import sys
 from setuptools import setup, find_packages
 from pkg_resources import resource_string
 
@@ -9,8 +7,8 @@ requirements_str = resource_string(__name__, 'requirements.txt')
 requirements = [line.strip() for line in requirements_str.splitlines()]
 
 setup(name='pypkjs',
-      version='3.6',
-      description='PebbleKit JS in Python!',
+      version='1.0',
+      description='A Pebble phone app simulator written in Python',
       url='https://github.com/pebble/pypkjs',
       author='Pebble Technology Corporation',
       author_email='katharine@pebble.com',
@@ -18,7 +16,11 @@ setup(name='pypkjs',
       packages=find_packages(),
       install_requires=requirements,
       package_data={
-          'javascript.navigator': ['GeoLiteCity.dat']
+          'javascript.navigator': ['GeoLiteCity.dat'],
+          'PyV8.darwin64': ['_PyV8.so'],
+          'PyV8.linux32': ['_PyV8.so'],
+          'PyV8.linux64': ['_PyV8.so', 'libboost_python.so.1.53.0', 'libboost_system-mt.so.1.53.0',
+                           'libboost_thread-mt.so.1.53.0']
       },
       entry_points={
           'console_scripts': [
