@@ -19,7 +19,7 @@ import urllib
 from libpebble2.services.appmessage import AppMessageService
 import pypkjs.javascript as javascript
 import pypkjs.javascript.runtime
-from pebble_manager import PebbleManager
+from .pebble_manager import PebbleManager
 from pypkjs.timeline import PebbleTimeline
 from pypkjs.timeline.urls import URLManager
 
