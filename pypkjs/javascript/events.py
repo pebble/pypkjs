@@ -1,8 +1,9 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
-import PyV8 as v8
+import pypkjs.PyV8 as v8
 
-from javascript.exceptions import JSRuntimeException
+from .exceptions import JSRuntimeException
 
 event = v8.JSExtension("runtime/event", """
     Event = function(event_type, event_init_dict) {

@@ -1,21 +1,20 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
 import datetime
-from dateutil.tz import tzlocal, tzutc
-import dateutil.parser
+from dateutil.tz import tzlocal
 import gevent
 import json
 import logging
-import requests
 import traceback
 import uuid
 
 from libpebble2.protocol.blobdb import *
 
-from actions import ActionHandler
-import model
-from model import TimelineItem, TimelineState, TimelineSubscription, PinTopic
-from websync import TimelineWebSync
+from .actions import ActionHandler
+from . import model
+from .model import TimelineItem, TimelineState, TimelineSubscription, PinTopic
+from .websync import TimelineWebSync
 
 
 class PebbleTimeline(object):

@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
 import logging
 import requests
 
-from model import TimelineItem, TimelineState, db as database
+from .model import TimelineState
 
 logger = logging.getLogger('pypkjs.timeline.websync')
 

@@ -1,13 +1,15 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
 from gevent import monkey; monkey.patch_all()
 
-import PyV8 as v8
 import requests
 import requests.exceptions
-import exceptions
-import events
-from safe_requests import NonlocalHTTPAdapter
+
+import pypkjs.PyV8 as v8
+from . import events
+from .safe_requests import NonlocalHTTPAdapter
+from .exceptions import JSRuntimeException
 
 progress_event = v8.JSExtension("runtime/events/progress", """
 ProgressEvent = function(computable, loaded, total) {
@@ -107,14 +109,14 @@ class XMLHttpRequest(events.EventSourceMixin):
 
     def setRequestHeader(self, header, value):
         if self.readyState != self.OPENED:
-            raise exceptions.JSRuntimeException("Request headers can only be set in the OPENED state.")
+            raise JSRuntimeException("Request headers can only be set in the OPENED state.")
         if self._sent:
-            raise exceptions.JSRuntimeException("Request headers cannot be set after sending a request.")
+            raise JSRuntimeException("Request headers cannot be set after sending a request.")
         self._request.headers[header] = value
 
     def overrideMimeType(self, mimetype):
         if self.readyState >= self.LOADING:
-            raise exceptions.JSRuntimeException("The mime type cannot be overridden after the request starts loading.")
+            raise JSRuntimeException("The mime type cannot be overridden after the request starts loading.")
         self._mime_override = mimetype
 
     def _do_request_error(self, exception, event):

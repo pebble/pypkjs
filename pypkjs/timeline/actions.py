@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
 import gevent
@@ -9,8 +10,8 @@ import uuid
 from libpebble2.protocol.blobdb import *
 from libpebble2.protocol.timeline import *
 
-from model import TimelineItem, TimelineActionSet
-from attributes import TimelineAttributeSet
+from .model import TimelineItem, TimelineActionSet
+from .attributes import TimelineAttributeSet
 
 
 class ActionHandler(object):

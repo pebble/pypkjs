@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
 from peewee import *
@@ -12,7 +13,7 @@ import struct
 
 from libpebble2.protocol.timeline import TimelineItem as TimelineItemBlob, TimelineAction
 
-from attributes import TimelineAttributeSet
+from .attributes import TimelineAttributeSet
 
 logger = logging.getLogger("pypkjs.timeline.model")
 db = SqliteDatabase(None)

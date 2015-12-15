@@ -1,12 +1,14 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
 from gevent import monkey; monkey.patch_all()
-import PyV8 as v8
-from exceptions import JSRuntimeException
-import events
 from gevent.greenlet import GreenletExit
 import struct
 import websocket
+
+import pypkjs.PyV8 as v8
+from .exceptions import JSRuntimeException
+from . import events
 
 close_event = v8.JSExtension("runtime/events/ws", """
 CloseEvent = function(eventInitDict) {

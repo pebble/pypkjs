@@ -1,12 +1,12 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
 import signal
 import webbrowser
 import BaseHTTPServer
-import gevent
 import socket
 
-from runner import Runner
+from . import Runner
 
 
 class TerminalRunner(Runner):

@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
-import PyV8 as v8
-from geolocation import Geolocation
+import pypkjs.PyV8 as v8
+from .geolocation import Geolocation
 
 
 class Navigator(object):

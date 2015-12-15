@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
 import calendar
@@ -8,7 +9,7 @@ import urlparse
 
 from libpebble2.protocol.timeline import TimelineAttribute
 
-from colours import PEBBLE_COLOURS
+from .colours import PEBBLE_COLOURS
 
 logger = logging.getLogger('pypkjs.timeline.attributes')
 

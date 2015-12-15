@@ -1,6 +1,7 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
-import PyV8 as v8
+import pypkjs.PyV8 as v8
 
 
 class Console(object):

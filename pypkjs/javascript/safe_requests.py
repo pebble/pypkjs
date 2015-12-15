@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 """
 This module contains overrides for various layers of requests/urllib3 to prevent
 making connections to blocked IP ranges.

@@ -1,24 +1,23 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
-from array import array
 import collections
 import logging
 import requests
 import struct
 import traceback
-import itertools
 from uuid import UUID
 import urllib
 
-import PyV8 as v8
+import pypkjs.PyV8 as v8
 from libpebble2.protocol.appmessage import AppMessage
 from libpebble2.protocol.system import Model
 from libpebble2.services.notifications import Notifications
 from libpebble2.services.appmessage import *
 from libpebble2.util.hardware import PebbleHardware
 
-import events
-from exceptions import JSRuntimeException
+from . import events
+from .exceptions import JSRuntimeException
 
 logger = logging.getLogger('pypkjs.javascript.pebble')
 

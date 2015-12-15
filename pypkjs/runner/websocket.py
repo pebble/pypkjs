@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
 from gevent import monkey
@@ -19,7 +20,7 @@ import traceback
 from libpebble2.communication.transports.qemu import MessageTargetQemu
 from libpebble2.services.install import AppInstaller
 
-from runner import Runner
+from . import Runner
 
 
 def must_auth(f):

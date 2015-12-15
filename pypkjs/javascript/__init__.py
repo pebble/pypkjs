@@ -1,14 +1,15 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
-import PyV8 as v8
-from console import Console
-from performance import Performance
-from timers import Timers
-from localstorage import LocalStorage
-from pebble import Pebble
-from xhr import prepare_xhr
-from navigator import Navigator
-from ws import prepare_ws
+from .console import Console
+from .performance import Performance
+from .timers import Timers
+from .localstorage import LocalStorage
+from .pebble import Pebble
+from .xhr import prepare_xhr
+from .navigator import Navigator
+from .ws import prepare_ws
+
 
 class PebbleKitJS(object):
     def __init__(self, runtime, pebble, persist=None):

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
 from gevent import monkey
@@ -16,11 +17,11 @@ import urlparse
 import urllib
 
 from libpebble2.services.appmessage import AppMessageService
-import javascript
-import javascript.runtime
+import pypkjs.javascript as javascript
+import pypkjs.javascript.runtime
 from pebble_manager import PebbleManager
-from timeline import PebbleTimeline
-import timeline.urls
+from pypkjs.timeline import PebbleTimeline
+from pypkjs.timeline.urls import URLManager
 
 
 class Runner(object):
@@ -41,7 +42,7 @@ class Runner(object):
         self.logger = logging.getLogger("pypkjs")
         self.running_uuid = None
         self.js = None
-        self.urls = timeline.urls.URLManager()
+        self.urls = URLManager()
         self.timeline = PebbleTimeline(self, persist=persist_dir, oauth=oauth_token, layout_file=layout_file)
         self.block_private_addresses = block_private_addresses
         self.load_cached_pbws()

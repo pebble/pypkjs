@@ -16,10 +16,10 @@ setup(name='pypkjs',
       packages=find_packages(),
       install_requires=requirements,
       package_data={
-          'javascript.navigator': ['GeoLiteCity.dat'],
-          'PyV8.darwin64': ['_PyV8.so'],
-          'PyV8.linux32': ['_PyV8.so'],
-          'PyV8.linux64': ['_PyV8.so', 'libboost_python.so.1.53.0', 'libboost_system-mt.so.1.53.0',
+          'pypkjs.javascript.navigator': ['GeoLiteCity.dat'],
+          'pypkjs.PyV8.darwin64': ['_PyV8.so'],
+          'pypkjs.PyV8.linux32': ['_PyV8.so'],
+          'pypkjs.PyV8.linux64': ['_PyV8.so', 'libboost_python.so.1.53.0', 'libboost_system-mt.so.1.53.0',
                            'libboost_thread-mt.so.1.53.0']
       },
       entry_points={

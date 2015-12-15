@@ -1,14 +1,15 @@
+from __future__ import absolute_import
 __author__ = 'katharine'
 
-import PyV8 as v8
+import pypkjs.PyV8 as v8
 import gevent
 import gevent.pool
 import gevent.queue
 import gevent.hub
 import logging
 
-from javascript import PebbleKitJS
-from javascript.exceptions import JSRuntimeException
+from . import PebbleKitJS
+from .exceptions import JSRuntimeException
 
 logger = logging.getLogger('pypkjs.javascript.pebble')
 
