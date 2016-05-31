@@ -289,7 +289,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         firmware_obj = self.runtime.context.eval("({})")
         fw_version = self.pebble.firmware_version
         firmware_obj['major'] = fw_version.major
-        firmware_obj['minor'] = fw_version.major
+        firmware_obj['minor'] = fw_version.minor
         firmware_obj['patch'] = fw_version.patch
         firmware_obj['suffix'] = fw_version.suffix
         js_object['firmware'] = firmware_obj
