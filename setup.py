@@ -7,7 +7,7 @@ requirements_str = resource_string(__name__, 'requirements.txt')
 requirements = [line.strip() for line in requirements_str.splitlines()]
 
 setup(name='pypkjs',
-      version='1.0.1',
+      version='1.0.2',
       description='A Pebble phone app simulator written in Python',
       url='https://github.com/pebble/pypkjs',
       author='Pebble Technology Corporation',
