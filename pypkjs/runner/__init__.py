@@ -59,9 +59,9 @@ class Runner(object):
                 else:
                     src = z.open('pebble-js-app.js').read().decode('utf-8')
                 layouts = {}
-                for platform in ('aplite', 'basalt'):
+                for platform in ('aplite', 'basalt', 'chalk', 'diorite'):
                     try:
-                        layouts[platform] = json.load(z.open('%s/timeline_resources.json' % platform))
+                        layouts[platform] = json.load(z.open('%s/layouts.json' % platform))
                     except (KeyError, ValueError):
                         layouts[platform] = {}
             manifest = json.loads(appinfo)
