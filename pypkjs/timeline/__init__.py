@@ -6,6 +6,7 @@ from dateutil.tz import tzlocal
 import gevent
 import json
 import logging
+import os
 import traceback
 import uuid
 
@@ -40,7 +41,7 @@ class PebbleTimeline(object):
                 with open(self._layout_file_path) as f:
                     self._fw_map_cache = json.load(f)
             else:
-                with open('timeline/layouts.json') as f:
+                with open(os.path.join(os.path.dirname(__file__), 'layouts.json')) as f:
                     self._fw_map_cache = json.load(f)
         return self._fw_map_cache
 
