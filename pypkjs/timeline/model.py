@@ -186,7 +186,7 @@ class TimelineItem(BaseModel):
             app_uuid = uuid.UUID(self.parent)
         else:
             parent_item = self.parent_item
-            while parent_item:
+            while parent_item.parent_item:
                 parent_item = parent_item.parent_item
             app_uuid = uuid.UUID(parent_item.parent)
         layout = TimelineAttributeSet(self.layout, timeline, app_uuid)
