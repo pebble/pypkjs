@@ -182,7 +182,14 @@ class TimelineItem(BaseModel):
             'pin': TimelineItemBlob.Type.Pin,
             'reminder': TimelineItemBlob.Type.Reminder,
         }
-        layout = TimelineAttributeSet(self.layout, timeline, uuid.UUID(self.parent))
+        if self.type == 'pin':
+            app_uuid = uuid.UUID(self.parent)
+        else:
+            parent_item = self.parent_item
+            while parent_item:
+                parent_item = parent_item.parent_item
+            app_uuid = uuid.UUID(parent_item.parent)
+        layout = TimelineAttributeSet(self.layout, timeline, app_uuid)
         serialised_layout = layout.serialise()
         actions = TimelineActionSet(self, timeline, uuid.UUID(self.parent))
         serialised_actions = actions.serialise()
