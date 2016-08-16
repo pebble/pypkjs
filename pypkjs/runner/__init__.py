@@ -25,7 +25,7 @@ from pypkjs.timeline.urls import URLManager
 
 
 class Runner(object):
-    PBW = collections.namedtuple('PBW', ('uuid', 'src', 'manifest'))
+    PBW = collections.namedtuple('PBW', ('uuid', 'src', 'manifest', 'layouts'))
 
     def __init__(self, qemu, pbws, persist_dir=None, oauth_token=None, layout_file=None, block_private_addresses=False):
         self.qemu = qemu
@@ -51,17 +51,24 @@ class Runner(object):
     def load_pbws(self, pbws, start=False, cache=False):
         for pbw_path in pbws:
             with zipfile.ZipFile(pbw_path) as z:
+                appinfo = z.open('appinfo.json').read()
                 try:
                     z.getinfo('pebble-js-app.js')
                 except KeyError:
-                    continue
-                appinfo = z.open('appinfo.json').read()
-                src = z.open('pebble-js-app.js').read().decode('utf-8')
+                    src = None
+                else:
+                    src = z.open('pebble-js-app.js').read().decode('utf-8')
+                layouts = {}
+                for platform in ('aplite', 'basalt', 'chalk', 'diorite'):
+                    try:
+                        layouts[platform] = json.load(z.open('%s/layouts.json' % platform))
+                    except (KeyError, ValueError):
+                        layouts[platform] = {}
             manifest = json.loads(appinfo)
             uuid = UUID(manifest['uuid'])
             if cache and self._pbw_cache_dir is not None:
                 shutil.copy(pbw_path, os.path.join(self._pbw_cache_dir, '%s.pbw' % uuid))
-            self.pbws[uuid] = self.PBW(uuid, src, manifest)
+            self.pbws[uuid] = self.PBW(uuid, src, manifest, layouts)
             if start:
                 self.start_js(self.pbws[uuid])
         self.logger.info("Ready. Loaded apps: %s", ', '.join(map(str, self.pbws.keys())))
@@ -84,6 +91,8 @@ class Runner(object):
 
     def start_js(self, pbw):
         self.stop_js()
+        if pbw.src is None:
+            return
         self.running_uuid = pbw.uuid
         self.js = javascript.runtime.JSRuntime(self.pebble, pbw.manifest, self, persist_dir=self.persist_dir,
                                                block_private_addresses=self.block_private_addresses)
@@ -91,6 +100,12 @@ class Runner(object):
         self.js.open_config_page = lambda url, callback: self.open_config_page(url, callback)
         gevent.spawn(self.js.run, pbw.src)
 
+    def timeline_mapping_for_app(self, app_uuid):
+        try:
+            pbw = self.pbws[app_uuid]
+        except KeyError:
+            return None
+        return pbw.layouts.get(self.pebble.pebble.watch_platform, {})
 
     def stop_js(self):
         if self.js is not None:

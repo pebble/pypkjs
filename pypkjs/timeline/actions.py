@@ -30,7 +30,7 @@ class ActionHandler(object):
         self.logger.debug("item_id: %s, action_id: %s", item_id, action_id)
         try:
             item = TimelineItem.get(TimelineItem.uuid == item_id)
-            actions = TimelineActionSet(item, self.timeline.fw_map)
+            actions = TimelineActionSet(item, self.timeline, uuid.UUID(item.parent))
             action = actions.get_actions()[action_id]
         except (TimelineItem.DoesNotExist, KeyError, IndexError):
             self.send_result(item_id, False, attributes={
@@ -110,13 +110,13 @@ class ActionHandler(object):
         # We don't actually have to do anything for 'dismiss' actions, but the watch expects us to ACK.
         return True, {'subtitle': 'Dismissed', 'largeIcon': 'system://images/RESULT_DISMISSED'}
 
-    def send_result(self, item_id, success, attributes=None):
-        self.logger.info("%sing %s action.", "ACK" if success else "NACK", item_id)
+    def send_result(self, item, success, attributes=None):
+        self.logger.info("%sing %s action.", "ACK" if success else "NACK", item.uuid)
         if attributes is None:
             attributes = {}
-        attribute_set = TimelineAttributeSet(attributes, self.timeline.fw_map)
+        attribute_set = TimelineAttributeSet(attributes, self.timeline, uuid.UUID(item.parent))
         attribute_list = attribute_set.serialise()
-        response = TimelineActionEndpoint(data=ActionResponse(item_id=uuid.UUID(item_id), response=int(not success),
+        response = TimelineActionEndpoint(data=ActionResponse(item_id=uuid.UUID(item.uuid), response=int(not success),
                                                               attributes=attribute_list))
         self.logger.debug("Serialised action response: %s", response.serialise().encode('hex'))
         self.pebble.pebble.send_packet(response)
