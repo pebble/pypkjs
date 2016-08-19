@@ -59,7 +59,8 @@ class Runner(object):
                 else:
                     src = z.open('pebble-js-app.js').read().decode('utf-8')
                 layouts = {}
-                for platform in ('aplite', 'basalt', 'chalk', 'diorite'):
+                platforms = [os.path.dirname(path) for path in z.namelist() if 'layouts.json' in path]
+                for platform in platforms:
                     try:
                         layouts[platform] = json.load(z.open('%s/layouts.json' % platform))
                     except (KeyError, ValueError):
