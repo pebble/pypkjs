@@ -124,6 +124,7 @@ class PebbleTimeline(object):
         pin_item.save(force_insert=not pin_item.exists())
         pin_item.update_topics(pin['topicKeys'])
         self.logger.debug("saved pin")
+        self._send(pin_item)
         if next_notification is not None:
             if is_updating:
                 TimelineItem.delete().where((TimelineItem.type == 'notification') &
@@ -133,7 +134,6 @@ class PebbleTimeline(object):
         for reminder in reminders:
             reminder.save(force_insert=True)
             self._send(reminder)
-        self._send(pin_item)
 
     def handle_pin_delete(self, pin):
         types = {
