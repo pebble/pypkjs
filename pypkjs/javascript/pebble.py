@@ -330,7 +330,8 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                 if callable(failure):
                     failure(slices, self.runtime.context.eval("({success: false})"))
             else:
-                success(slices, self.runtime.context.eval("({success: true})"))
+                if callable(success):
+                    success(slices, self.runtime.context.eval("({success: true})"))
 
         self.blobdb.insert(BlobDatabaseID.AppGlance, self.uuid, glance.serialise(), callback=handle_result)
 
