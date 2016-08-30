@@ -242,6 +242,11 @@ class WebsocketLogHandler(logging.Handler):
         self.ws_runner.log_output(self.format(record))
 
 def run_tool():
+    try:
+        import urllib3.contrib.pyopenssl
+        urllib3.contrib.pyopenssl.inject_into_urllib3()
+    except ImportError:
+        pass
     version_string = "pypkjs v{}".format(__version__)
     parser = argparse.ArgumentParser(description='Emulate a phone running the Pebble app')
     parser.add_argument('--version', action='version', version=version_string)
