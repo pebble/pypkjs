@@ -1,22 +1,31 @@
 from __future__ import absolute_import
 __author__ = 'katharine'
 
+import calendar
 import collections
+import datetime
+import dateutil.parser
+from dateutil.tz import tzlocal
 import logging
 import requests
 import struct
+import time
 import traceback
 from uuid import UUID
 import urllib
 
 import pypkjs.PyV8 as v8
+from libpebble2.protocol.appglance import AppGlance, AppGlanceSlice, AppGlanceSliceType
 from libpebble2.protocol.appmessage import AppMessage
+from libpebble2.protocol.blobdb import BlobDatabaseID, BlobStatus
 from libpebble2.protocol.system import Model
+from libpebble2.services.blobdb import SyncWrapper
 from libpebble2.services.notifications import Notifications
 from libpebble2.services.appmessage import *
 from libpebble2.util.hardware import PebbleHardware
 
 from . import events
+from ..timeline.attributes import TimelineAttributeSet
 from .exceptions import JSRuntimeException
 
 logger = logging.getLogger('pypkjs.javascript.pebble')
@@ -34,7 +43,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             _make_proxies(this, _internal_pebble(),
                 ['sendAppMessage', 'showSimpleNotificationOnPebble', 'getAccountToken', 'getWatchToken',
                 'addEventListener', 'removeEventListener', 'openURL', 'getTimelineToken', 'timelineSubscribe',
-                'timelineUnsubscribe', 'timelineSubscriptions', 'getActiveWatchInfo']);
+                'timelineUnsubscribe', 'timelineSubscriptions', 'getActiveWatchInfo', 'appGlanceReload']);
             this.platform = 'pypkjs';
         })();
         """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
@@ -301,3 +310,36 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             e.response = response
             self.triggerEvent("webviewclosed", e)
         self.runtime.enqueue(go)
+
+    def appGlanceReload(self, slices, success, failure):
+        slices = [AppGlanceSlice(
+                    self._time_from_js(dict(x).get('expirationTime', None)),
+                    AppGlanceSliceType.IconAndSubtitle,
+                    TimelineAttributeSet(dict(x['layout']), self.runtime.runner.timeline, self.uuid).serialise())
+                  for x in slices]
+        glance = AppGlance(
+            version=1,
+            creation_time=int(time.time()),
+            slices=(slices or [])
+        )
+        logger.debug("Constructed AppGlance: %s", glance)
+        result = SyncWrapper(self.blobdb.insert, BlobDatabaseID.AppGlance, self.uuid, glance.serialise()).wait()
+        if result != BlobStatus.Success:
+            logger.warning("Glance reload failed: {!s}".format(result))
+            if callable(failure):
+                failure(slices, self.runtime.context.eval("({success: false})"))
+        else:
+            success(slices, self.runtime.context.eval("({success: true})"))
+
+    def _time_from_js(self, js_time):
+        if js_time is None:
+            return 0
+        elif isinstance(js_time, basestring):
+            dt = dateutil.parser.parse(js_time)
+            if dt.tzinfo is None:
+                raise JSRuntimeException("Date strings without timezone information are not permitted.")
+        elif isinstance(js_time, datetime.datetime):
+            dt = js_time.replace(tzinfo=tzlocal())
+        else:
+            raise JSRuntimeException("Expected Date object or time string, got {}.".format(type(js_time)))
+        return calendar.timegm(dt.utctimetuple())
