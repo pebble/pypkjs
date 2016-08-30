@@ -323,13 +323,16 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             slices=(slices or [])
         )
         logger.debug("Constructed AppGlance: %s", glance)
-        result = SyncWrapper(self.blobdb.insert, BlobDatabaseID.AppGlance, self.uuid, glance.serialise()).wait()
-        if result != BlobStatus.Success:
-            logger.warning("Glance reload failed: {!s}".format(result))
-            if callable(failure):
-                failure(slices, self.runtime.context.eval("({success: false})"))
-        else:
-            success(slices, self.runtime.context.eval("({success: true})"))
+
+        def handle_result(result):
+            if result != BlobStatus.Success:
+                logger.warning("Glance reload failed: {!s}".format(result))
+                if callable(failure):
+                    failure(slices, self.runtime.context.eval("({success: false})"))
+            else:
+                success(slices, self.runtime.context.eval("({success: true})"))
+
+        self.blobdb.insert(BlobDatabaseID.AppGlance, self.uuid, glance.serialise(), callback=handle_result)
 
     def _time_from_js(self, js_time):
         if js_time is None:
