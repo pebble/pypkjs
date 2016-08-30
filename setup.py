@@ -6,8 +6,12 @@ from pkg_resources import resource_string
 requirements_str = resource_string(__name__, 'requirements.txt')
 requirements = [line.strip() for line in requirements_str.splitlines()]
 
+__version__= None  # Overwritten by executing version.py.
+with open('pypkjs/version.py') as f:
+    exec(f.read())
+
 setup(name='pypkjs',
-      version='1.0.5',
+      version=__version__,
       description='A Pebble phone app simulator written in Python',
       url='https://github.com/pebble/pypkjs',
       author='Pebble Technology Corporation',

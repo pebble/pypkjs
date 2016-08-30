@@ -21,6 +21,7 @@ from libpebble2.communication.transports.qemu import MessageTargetQemu
 from libpebble2.services.install import AppInstaller
 
 from . import Runner
+from ..version import __version__
 
 
 def must_auth(f):
@@ -241,7 +242,9 @@ class WebsocketLogHandler(logging.Handler):
         self.ws_runner.log_output(self.format(record))
 
 def run_tool():
+    version_string = "pypkjs v{}".format(__version__)
     parser = argparse.ArgumentParser(description='Emulate a phone running the Pebble app')
+    parser.add_argument('--version', action='version', version=version_string)
     parser.add_argument('--qemu', default='127.0.0.1:12344', help="Location of qemu bluetooth socket")
     parser.add_argument('--port', default=9000, type=int, help="Port for phone websocket to listen on")
     parser.add_argument('--token', help="Token for the websocket to require as authentication")
