@@ -67,6 +67,9 @@ class JSRuntime(object):
             logger.info("JS starting")
             try:
                 self.context.eval(src, filename)
+            except (v8.JSSyntaxError) as e:
+                self.log_output(e.hint(src))
+                self.log_output("JS failed.")
             except (v8.JSError, JSRuntimeException) as e:
                 self.log_output(e.stackTrace)
                 self.log_output("JS failed.")
