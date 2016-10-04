@@ -92,7 +92,7 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
             return
         callback_param = {"data": {"transactionId": tid}}
         if did_succeed:
-            if callable(failure):
+            if callable(success):
                 self.runtime.enqueue(success, callback_param)
         else:
             if callable(failure):
