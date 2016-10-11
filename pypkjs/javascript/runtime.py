@@ -39,11 +39,11 @@ make_proxy_extension = v8.JSExtension("runtime/internal/proxy", """
 
 
 class JSRuntime(object):
-    def __init__(self, qemu, manifest, runner, persist_dir=None, block_private_addresses=False):
+    def __init__(self, qemu, pbw, runner, persist_dir=None, block_private_addresses=False):
         self.group = gevent.pool.Group()
         self.queue = gevent.queue.Queue()
         self.qemu = qemu
-        self.manifest = manifest
+        self.pbw = pbw
         self.runner = runner
         self.runtime_id = JSRuntime.runtimeCount
         self.persist_dir = persist_dir
@@ -108,7 +108,7 @@ class JSRuntime(object):
         return "instance/%d/runtime/%s" % (self.runtime_id, name)
 
     def is_configurable(self):
-        return 'configurable' in self.manifest['capabilities']
+        return 'configurable' in self.pbw.manifest['capabilities']
 
     def do_config(self):
         self.enqueue(self.pjs.pebble._configure)

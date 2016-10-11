@@ -16,6 +16,7 @@ import shutil
 import urlparse
 import urllib
 
+from libpebble2.util.bundle import PebbleBundle
 from libpebble2.services.appmessage import AppMessageService
 import pypkjs.javascript as javascript
 import pypkjs.javascript.runtime
@@ -25,7 +26,7 @@ from pypkjs.timeline.urls import URLManager
 
 
 class Runner(object):
-    PBW = collections.namedtuple('PBW', ('uuid', 'src', 'manifest', 'layouts'))
+    PBW = collections.namedtuple('PBW', ('uuid', 'src', 'manifest', 'layouts', 'prefixes'))
 
     def __init__(self, qemu, pbws, persist_dir=None, oauth_token=None, layout_file=None, block_private_addresses=False):
         self.qemu = qemu
@@ -59,8 +60,10 @@ class Runner(object):
                 else:
                     src = z.open('pebble-js-app.js').read().decode('utf-8')
                 layouts = {}
-                platforms = [os.path.dirname(path) for path in z.namelist() if 'layouts.json' in path]
-                for platform in platforms:
+                prefixes = [path[:-len(PebbleBundle.MANIFEST_FILENAME)] for path in z.namelist()
+                            if PebbleBundle.MANIFEST_FILENAME in path]
+                layout_platforms = [os.path.dirname(path) for path in z.namelist() if 'layouts.json' in path]
+                for platform in layout_platforms:
                     try:
                         layouts[platform] = json.load(z.open('%s/layouts.json' % platform))
                     except (KeyError, ValueError):
@@ -69,7 +72,7 @@ class Runner(object):
             uuid = UUID(manifest['uuid'])
             if cache and self._pbw_cache_dir is not None:
                 shutil.copy(pbw_path, os.path.join(self._pbw_cache_dir, '%s.pbw' % uuid))
-            self.pbws[uuid] = self.PBW(uuid, src, manifest, layouts)
+            self.pbws[uuid] = self.PBW(uuid, src, manifest, layouts, prefixes)
             if start:
                 self.start_js(self.pbws[uuid])
         self.logger.info("Ready. Loaded apps: %s", ', '.join(map(str, self.pbws.keys())))
@@ -95,7 +98,7 @@ class Runner(object):
         if pbw.src is None:
             return
         self.running_uuid = pbw.uuid
-        self.js = javascript.runtime.JSRuntime(self.pebble, pbw.manifest, self, persist_dir=self.persist_dir,
+        self.js = javascript.runtime.JSRuntime(self.pebble, pbw, self, persist_dir=self.persist_dir,
                                                block_private_addresses=self.block_private_addresses)
         self.js.log_output = lambda m: self.log_output(m)
         self.js.open_config_page = lambda url, callback: self.open_config_page(url, callback)

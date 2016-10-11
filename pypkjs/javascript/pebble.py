@@ -23,6 +23,7 @@ from libpebble2.services.blobdb import SyncWrapper
 from libpebble2.services.notifications import Notifications
 from libpebble2.services.appmessage import *
 from libpebble2.util.hardware import PebbleHardware
+from libpebble2.util.bundle import PebbleBundle
 
 from . import events
 from ..timeline.attributes import TimelineAttributeSet
@@ -51,8 +52,8 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
         self.pebble = pebble.pebble
         self.runtime = runtime
         self.tid = 0
-        self.uuid = UUID(runtime.manifest['uuid'])
-        self.app_keys = runtime.manifest['appKeys']
+        self.uuid = runtime.pbw.uuid
+        self.app_keys = runtime.pbw.manifest['appKeys']
         self.pending_acks = {}
         self.is_ready = False
         self._timeline_token = None
@@ -270,11 +271,24 @@ class Pebble(events.EventSourceMixin, v8.JSClass):
                     self.runtime.enqueue(success, subs)
         self.runtime.group.spawn(go)
 
+    def _infer_installed_platform(self):
+        available_prefixes = self.runtime.pbw.prefixes
+        valid_prefixes = PebbleBundle.prefixes_for_hardware(self.pebble.watch_info.running.hardware_platform)
+        for prefix in valid_prefixes:
+            if prefix in available_prefixes:
+                if prefix == '':
+                    return 'aplite'
+                else:
+                    return prefix[:-1]
+        raise JSRuntimeException("Internal consistency error: This app's prefixes (%s) and the supported "
+                                 "prefixes (%s) do not intersect!" % (available_prefixes, valid_prefixes))
+
+
     def getActiveWatchInfo(self):
         watch_info = self.pebble.watch_info
 
         js_object = self.runtime.context.eval("({})")
-        platform = PebbleHardware.hardware_platform(watch_info.running.hardware_platform)
+        platform = self._infer_installed_platform()
         js_object['platform'] = platform
         model = self.pebble.watch_model  # Note: this could take a while.
         model_map = {

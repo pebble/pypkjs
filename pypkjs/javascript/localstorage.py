@@ -23,12 +23,12 @@ class LocalStorage(object):
                     if e.errno != errno.EEXIST:
                         raise
 
-                self.storage = dumbdbm.open(os.path.join(persist_dir, 'localstorage', runtime.manifest['uuid']), 'c')
+                self.storage = dumbdbm.open(os.path.join(persist_dir, 'localstorage', str(runtime.pbw.uuid)), 'c')
             except IOError:
                 pass
         if self.storage is None:
             logger.warning("Using transient store.")
-            self.storage = _storage_cache.setdefault(runtime.manifest['uuid'], {})
+            self.storage = _storage_cache.setdefault(str(runtime.pbw.uuid), {})
 
         self.extension = v8.JSExtension(runtime.ext_name("localstorage"), """
         (function() {
