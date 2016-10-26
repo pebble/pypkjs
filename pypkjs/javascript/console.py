@@ -15,8 +15,19 @@ class Console(object):
         """, lambda f: lambda: self, dependencies=["runtime/internal/proxy"])
 
     def log(self, *params):
-        self.runtime.log_output(u' '.join([x.toString().decode('utf-8') if hasattr(x, 'toString')
-                                           else bytes(x).decode('utf-8') for x in params]))
+        # kOverview == kLineNumber | kColumnOffset | kScriptName | kFunctionName
+        trace_str = str(v8.JSStackTrace.GetCurrentStackTrace(2, v8.JSStackTrace.Options.Overview))
+        try:
+            frames = v8.JSError.parse_stack(trace_str.strip())
+            caller_frame = frames[0]
+            filename = caller_frame[1]
+            line_num = caller_frame[2]
+            file_and_line = u"{}:{}".format(filename, line_num)
+        except:
+            file_and_line = u"???:?:?"
+        log_str = u' '.join([x.toString().decode('utf-8') if hasattr(x, 'toString')
+                                           else bytes(x).decode('utf-8') for x in params])
+        self.runtime.log_output(u"{} {}".format(file_and_line, log_str))
 
     def warn(self, *params):
         self.log(*params)
